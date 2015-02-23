@@ -22,7 +22,7 @@ import org.geoserver.wps.gs.GeoServerProcess;
  */
 public class CRISMAWPS implements GeoServerProcess {
 
-    @DescribeProcess(title = "crismaWPS", description = "CRISMA WPS ICCM aware")
+    @DescribeProcess(title = "crismaWPS", description = "CRISMA WPS ICMM aware")
     @DescribeResult(name = "result", description = "output result")
     public String execute(@DescribeParameter(name = "name", description = "name to return") String name) {
         return "Hello, " + name;
@@ -39,7 +39,9 @@ public class CRISMAWPS implements GeoServerProcess {
         Connection conn = this.connectToDatabaseOrDie();
 
         Statement st = conn.createStatement();
-        ResultSet rs = st.executeQuery("SELECT * FROM mytable WHERE columnfoo = 500");
+        //select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3);
+//        ResultSet rs = st.executeQuery("SELECT * FROM mytable WHERE columnfoo = 500");
+        ResultSet rs = st.executeQuery("select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3)");
         while (rs.next()) {
             System.out.print("Column 1 returned ");
             System.out.println(rs.getString(1));
