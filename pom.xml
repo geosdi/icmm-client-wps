@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     
     <groupId>org.geosdi</groupId>
-    <artifactId>iccm-client-wps</artifactId>
+    <artifactId>icmm-client-wps</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     
@@ -20,7 +20,7 @@
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-process</artifactId>
-            <version>11.5</version>
+            <version>13-SNAPSHOT</version>
         </dependency>
         
         <dependency>
@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>9.4-1200-jdbc41</version>
+            <version>9.2-1004-jdbc41</version>
         </dependency>
         
         <dependency>

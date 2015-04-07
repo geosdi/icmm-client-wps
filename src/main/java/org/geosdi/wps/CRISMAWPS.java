@@ -23,6 +23,7 @@ import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
+import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.NamespaceInfo;
 import org.geoserver.catalog.WorkspaceInfo;
@@ -77,6 +78,7 @@ public class CRISMAWPS implements GeoServerProcess {
 //        PreparedStatement prepareStatement = conn.prepareStatement("select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3)");
 //        st.setInt(1, foovalue);
         ResultSet rs = st.executeQuery("select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3)");
+        logger.info("Query Executed");
         while (rs.next()) {
             logger.info("Column 1 returned ");
             logger.info("Metadata column count: " + rs.getMetaData().getColumnCount());
@@ -119,7 +121,7 @@ public class CRISMAWPS implements GeoServerProcess {
         // already exist
         NamespaceInfo namespace = catalog.getNamespaceByPrefix(crismaWorkspace.getName());
         if (namespace == null) {
-            logger.fine("Automatically creating namespace for workspace " + crismaWorkspace.getName());
+            logger.info("Automatically creating namespace for workspace " + crismaWorkspace.getName());
 
             namespace = catalog.getFactory().createNamespace();
             namespace.setPrefix(crismaWorkspace.getName());
@@ -128,7 +130,9 @@ public class CRISMAWPS implements GeoServerProcess {
         }
 
         DataStoreInfo crismaDatastore = catalog.getDataStoreByName(CRISMA_WORKSPACE, CRISMA_DATASTORE);
+        logger.info("crismaDatastore: " + crismaDatastore);
         if (crismaDatastore == null) {
+            logger.info("Creating datastore");
 //            crismaDatastore = catalog.getFactory().createDataStore();
 //            crismaDatastore.setName(CRISMA_DATASTORE);
 //            crismaDatastore.setWorkspace(crismaWorkspace);
@@ -158,16 +162,23 @@ public class CRISMAWPS implements GeoServerProcess {
 
         FeatureTypeInfo featureTypeInfo = this.catalog.getFeatureTypeByDataStore(crismaDatastore, "intens_grid");
 
+        logger.info("FeatureTypeInfo: " + featureTypeInfo);
+
         if (featureTypeInfo == null) {
+            logger.info("Creating featureTypeInfo");
             featureTypeInfo = this.catalog.getFactory().createFeatureType();
 
             featureTypeInfo.setStore(crismaDatastore);
             featureTypeInfo.setNamespace(namespace);
             featureTypeInfo.setName("intens_grid");
             featureTypeInfo.setNativeName("intens_grid");
+            logger.info("BUG overriding existing feature type");
+//            this.catalog.detach(featureTypeInfo);
             this.catalog.add(featureTypeInfo);
+            logger.info("AFTER Creating featureTypeInfo");
 
             DataAccess gtda = crismaDatastore.getDataStore(null);
+            logger.info("crismaDatastore.getDataStore(null): " + crismaDatastore.getDataStore(null));
             if (gtda instanceof DataStore) {
                 String typeName = featureTypeInfo.getName();
                 if (featureTypeInfo.getNativeName() != null) {
@@ -260,8 +271,8 @@ public class CRISMAWPS implements GeoServerProcess {
 //        }
 //        rs.close();
 //        st.close();
-        logger.info("Eseguito processo");
-        return "Success";
+//        logger.info("Processo Eseguito: " + layer != null ? layer.getPath() : "-");
+        return "Processo Eseguito";
     }
 
     private Connection connectToDatabaseOrDie() {
