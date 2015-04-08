@@ -162,6 +162,13 @@ public class CRISMAWPS implements GeoServerProcess {
 
         FeatureTypeInfo featureTypeInfo = this.catalog.getFeatureTypeByDataStore(crismaDatastore, "intens_grid");
 
+        LayerInfo layer = this.catalog.getLayerByName("intens_grid");
+
+        if (featureTypeInfo != null && layer == null) {
+            this.catalog.remove(featureTypeInfo);
+            featureTypeInfo = null;
+        }
+
         logger.info("FeatureTypeInfo: " + featureTypeInfo);
 
         if (featureTypeInfo == null) {
