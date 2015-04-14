@@ -54,6 +54,8 @@ public class TDVModel implements GeoServerProcess {
     /*
      * Example link to execute the WPS:
      * http://192.168.1.30:8080/geoserver/wps?service=WPS&version=1.0.0&request=Execute&identifier=gs:HazardModel&datainputs=isShakemap=true;shakeMapName=name;latitude=5;magnitude=2;longitude=5;depth=10;
+     * Example cURL request:
+     * curl -u admin:m_Loa5hJz8Vb -H 'Content-type: xml' -XPOST -d@'/home/andypower/tdv_wps.xml' http://wps.plinivs.it:8080/geoserver/wps
      */
     private Logger logger = Logger.getLogger("org.geosdi.wps");
 
@@ -71,19 +73,27 @@ public class TDVModel implements GeoServerProcess {
     @DescribeResult(name = "intens grid", description = "WFS link for intensity distribution map")
     public String execute(
             @DescribeParameter(name = "isShakemap", description = "Shakemap presence") boolean isShakeMap,
-            @DescribeParameter(name = "shakeMapName", description = "Shakemap table name", min = 0,
-                    collectionType = String.class) List<String> shakeMapName,
-            @DescribeParameter(name = "latitude", description = "Epi center latitude") Float[] lat,
+            @DescribeParameter(name = "shakeMapName", description = "Shakemap table name",
+                    collectionType = String.class, min = 0) List<String> shakeMapName,
+            @DescribeParameter(name = "latitude", description = "Epi center latitude",
+                    collectionType = Float.class) Float[] lat,
             @DescribeParameter(name = "longitude", description = "Epi center longitude") Float lon,
             @DescribeParameter(name = "depth", description = "Epi center longitude") Float depth,
             @DescribeParameter(name = "magnitude", description = "Earthquake magnitude") Float mag)
             throws Exception {
-        
+
+//        if (shakeMapName != null && shakeMapName.size() > 0) {
+//            final String[] names = (String[]) shakeMapName.toArray(new String[shakeMapName.size()]);
+//            logger.info("names: " + names.length);
+//            logger.info("shakeMapName 1: " + names);
+//            logger.info("shakeMapName 2: " + names[0]);
+//            logger.info("shakeMapName 3: " + names[1]);
+//        }
         logger.info("shakeMapName: " + shakeMapName.size());
         logger.info("shakeMapName 1: " + shakeMapName);
         logger.info("shakeMapName 2: " + shakeMapName.get(0));
         logger.info("shakeMapName 3: " + shakeMapName.get(1));
-        
+
         Transition transition = this.initHazardModelElaborationTransition();
 
         Connection conn = this.connectToDatabaseOrDie();
