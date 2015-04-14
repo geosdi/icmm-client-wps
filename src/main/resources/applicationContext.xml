@@ -17,8 +17,29 @@
     <util:properties id="paramsProperties" location="classpath:params.properties" />  
         
         
-    <bean id="crismaWPS" class="org.geosdi.wps.CRISMAWPS">
+    <bean id="utils" class="org.geosdi.wps.utility.Utils">
         <constructor-arg index="0" ref="catalog"/>
+        <constructor-arg index="1" value="#{paramsProperties['icmm-url']}"/>
+        <property name="properties">
+            <props>
+                <prop key="db.port">#{paramsProperties['db.port']}</prop>
+                <prop key="db.user">#{paramsProperties['db.user']}</prop>
+                <prop key="db.passwd">#{paramsProperties['db.passwd']}</prop>
+                <prop key="db.host">#{paramsProperties['db.host']}</prop>
+                <prop key="db.name">#{paramsProperties['db.name']}</prop>
+                <prop key="db.schema">#{paramsProperties['db.schema']}</prop>
+            </props>
+        </property>
+    </bean>
+    
+    <bean id="hazardModel" class="org.geosdi.wps.HazardModel">
+        <constructor-arg index="0" ref="utils"/>
+    </bean>
+
+    <bean id="tdvModel" class="org.geosdi.wps.TDVModel">
+        <constructor-arg index="0" ref="catalog"/>
+        <constructor-arg index="1" value="#{paramsProperties['icmm-url']}"/>
+        <!--icmm-url=http://crisma.cismet.de/icmm_api-->
         <property name="properties">
             <props>
                 <prop key="db.port">#{paramsProperties['db.port']}</prop>

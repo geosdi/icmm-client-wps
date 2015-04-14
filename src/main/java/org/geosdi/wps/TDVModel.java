@@ -5,6 +5,11 @@
  */
 package org.geosdi.wps;
 
+import org.geosdi.wps.utility.Utils;
+import eu.crismaproject.icmm.icmmhelper.ICMMClient;
+import eu.crismaproject.icmm.icmmhelper.ICMMHelper;
+import eu.crismaproject.icmm.icmmhelper.entity.Transition;
+import eu.crismaproject.icmm.icmmhelper.entity.Transition.Status;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -43,41 +48,71 @@ import org.opengis.feature.simple.SimpleFeatureType;
  * @author Nazzareno Sileno - CNR IMAA geoSDI Group
  * @email nazzareno.sileno@geosdi.org
  */
-@DescribeProcess(title = "Hazard Model", description = "CRISMA WPS for Hazard Model elaboration")
-public class CRISMAWPS implements GeoServerProcess {
+@DescribeProcess(title = "TDV Model", description = "CRISMA WPS for Time Dependent Vulnerability elaboration")
+public class TDVModel implements GeoServerProcess {
 
+    /*
+     * Example link to execute the WPS:
+     * http://192.168.1.30:8080/geoserver/wps?service=WPS&version=1.0.0&request=Execute&identifier=gs:HazardModel&datainputs=isShakemap=true;shakeMapName=name;latitude=5;magnitude=2;longitude=5;depth=10;
+     */
     private Logger logger = Logger.getLogger("org.geosdi.wps");
 
-    private final static String CRISMA_WORKSPACE = "crisma";
-    private final static String CRISMA_DATASTORE = "hazard";
+    private final ICMMClient client;
 
     private Properties properties;
     private Catalog catalog;
 
-    public CRISMAWPS(Catalog catalog) {
+    public TDVModel(Catalog catalog, String icmm_url) {
         this.catalog = catalog;
+        this.client = new ICMMClient(icmm_url);
     }
 
-//    @DescribeProcess(title = "crismaWPS", description = "CRISMA WPS ICMM aware")
-//    @DescribeResult(name = "result", description = "output result")
-//    public String execute(@DescribeParameter(name = "name", description = "name to return") String name) {
-//        return "Hello, " + name;
-//    }
+    //TODO: Use List for params
     @DescribeResult(name = "intens grid", description = "WFS link for intensity distribution map")
-    public String execute(@DescribeParameter(name = "isShakemap", description = "Shakemap presence") boolean isShakeMa,
-            @DescribeParameter(name = "shakeMapName", description = "Shakemap table name") String shakeMapName,
-            @DescribeParameter(name = "latitude", description = "Epi center latitude") Double lat,
-            @DescribeParameter(name = "longitude", description = "Epi center longitude") Double lon,
-            @DescribeParameter(name = "magnitude", description = "Earthquake magnitude") Double mag) throws Exception {
+    public String execute(
+            @DescribeParameter(name = "isShakemap", description = "Shakemap presence") boolean isShakeMap,
+            @DescribeParameter(name = "shakeMapName", description = "Shakemap table name", min = 0,
+                    collectionType = String.class) List<String> shakeMapName,
+            @DescribeParameter(name = "latitude", description = "Epi center latitude") Float[] lat,
+            @DescribeParameter(name = "longitude", description = "Epi center longitude") Float lon,
+            @DescribeParameter(name = "depth", description = "Epi center longitude") Float depth,
+            @DescribeParameter(name = "magnitude", description = "Earthquake magnitude") Float mag)
+            throws Exception {
+        
+        logger.info("shakeMapName: " + shakeMapName.size());
+        logger.info("shakeMapName 1: " + shakeMapName);
+        logger.info("shakeMapName 2: " + shakeMapName.get(0));
+        logger.info("shakeMapName 3: " + shakeMapName.get(1));
+        
+        Transition transition = this.initHazardModelElaborationTransition();
 
         Connection conn = this.connectToDatabaseOrDie();
-
         Statement st = conn.createStatement();
-        //select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3);
-//        ResultSet rs = st.executeQuery("SELECT * FROM mytable WHERE columnfoo = 500");
-//        PreparedStatement prepareStatement = conn.prepareStatement("select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3)");
-//        st.setInt(1, foovalue);
-        ResultSet rs = st.executeQuery("select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3)");
+//        PreparedStatement prepareStatement = conn.prepareStatement("select aquila.hazard_elaboration(?,?,?,?,?,?)");
+//        prepareStatement.setBoolean(1, isShakeMap);
+//        prepareStatement.setString(2, shakeMapName == null ? "" : shakeMapName);
+//        prepareStatement.setFloat(3, lat);
+//        prepareStatement.setFloat(4, lon);
+//        prepareStatement.setFloat(5, depth);
+//        prepareStatement.setFloat(6, mag);
+//
+//        ResultSet rs = prepareStatement.executeQuery();
+//        ResultSet rs = st.executeQuery("select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3)");
+        StringBuilder stringBuilder = new StringBuilder("select aquila.hazard_elaboration(");
+        stringBuilder.
+                append(isShakeMap).
+                append(",").
+                append(shakeMapName == null ? "''" : shakeMapName).
+                append(",").
+                append(lat).
+                append(",").
+                append(lon).
+                append(",").
+                append(depth).
+                append(",").
+                append(mag).
+                append(")");
+        ResultSet rs = st.executeQuery(stringBuilder.toString());
         logger.info("Query Executed");
         while (rs.next()) {
             logger.info("Column 1 returned ");
@@ -85,40 +120,53 @@ public class CRISMAWPS implements GeoServerProcess {
             logger.info(rs.getString(1));
         }
         rs.close();
-
-//        rs = st.executeQuery("select * from aquila.intens_grid");
-//        int i = 1;
-//        while (rs.next()) {
-//            logger.info("Metadata column count: " + rs.getMetaData().getColumnCount());
-//            logger.info(rs.getString(i));
-//        }
-//        rs.close();
+        this.updateTransition("Fetching results", transition, 2, Transition.Status.RUNNING);
+//        client.getWorldstate(1).
         st.close();
 
-//        Map<String, Object> params = new HashMap<String, Object>();
-//        params.put("dbtype", "postgis");
-//        params.put("host", "localhost");
-//        params.put("port", 5432);
-//        params.put("schema", "public");
-//        params.put("database", "crisma");
-//        params.put("user", "postgres");
-//        params.put("passwd", "0x,postgres,0x");
-//
-//        DataStore dataStore = DataStoreFinder.getDataStore(params);
-//        
-//        SimpleFeatureType schema = DataUtilities.createType("Geometry", "centerline:LineString,name:\"\",id:0");
-//        dataStore.createSchema(schema);
-//
-//        FeatureWriter featureWriter = dataStore.getFeatureWriter("Naz", Transaction.AUTO_COMMIT);
-//        featureWriter.
-        WorkspaceInfo crismaWorkspace = catalog.getWorkspaceByName(CRISMA_WORKSPACE);
-        if (crismaWorkspace == null) {
-            crismaWorkspace = catalog.getFactory().createWorkspace();
-            crismaWorkspace.setName(CRISMA_WORKSPACE);
-            catalog.add(crismaWorkspace);
-        }
+        WorkspaceInfo crismaWorkspace = this.getWorkspace();
         //create a namespace corresponding to the workspace if one does not 
         // already exist
+        NamespaceInfo namespace = this.getNamespace(crismaWorkspace);
+        DataStoreInfo crismaDatastore = this.getDataStore(crismaWorkspace);
+
+        FeatureTypeInfo featureTypeInfo = this.getFeatureType(crismaWorkspace, crismaDatastore, namespace);
+//        LayerInfo l = catalog.getFactory().createLayer();
+//        // l.setName("foo");
+//        l.setResource(featureTypeInfo);
+//
+//        StyleInfo s = catalog.getStyleByName("foostyle");
+//        l.setDefaultStyle(s);
+//        catalog.add(l);
+        ICMMHelper.updateTransition(transition, Transition.Status.FINISHED, 3, 3, "Process Executed");
+        client.putTransition(transition);
+        //Example WMS link: http://192.168.1.30:8080/geoserver/wms?request=GetMap&service=WMS&version=1.1.1&layers=crisma:intens_grid&format=image%2Fpng&bbox=345220.145083,4670346.1361,391220.145083,4716846.1361&width=506&height=512&srs=EPSG:32633
+        return featureTypeInfo.getName();
+    }
+
+    private Transition initHazardModelElaborationTransition() {
+        Transition transition = ICMMHelper.createTransition("Hazard Model Elaboration",
+                "WPS Hazard Model Elaboration");
+        //Remember to initialize transaction Self Ref ID
+        client.insertSelfRefAndId(transition);
+        client.putTransition(transition);
+        //Remember to push the result on client side
+        ICMMHelper.updateTransition(transition, Transition.Status.RUNNING, 1, 3, "Calling process");
+        client.putTransition(transition);
+        return transition;
+    }
+
+    private WorkspaceInfo getWorkspace() {
+        WorkspaceInfo workspaceInfo = catalog.getWorkspaceByName(Utils.CRISMA_WORKSPACE);
+        if (workspaceInfo == null) {
+            workspaceInfo = catalog.getFactory().createWorkspace();
+            workspaceInfo.setName(Utils.CRISMA_WORKSPACE);
+            catalog.add(workspaceInfo);
+        }
+        return workspaceInfo;
+    }
+
+    private NamespaceInfo getNamespace(WorkspaceInfo crismaWorkspace) {
         NamespaceInfo namespace = catalog.getNamespaceByPrefix(crismaWorkspace.getName());
         if (namespace == null) {
             logger.info("Automatically creating namespace for workspace " + crismaWorkspace.getName());
@@ -128,19 +176,17 @@ public class CRISMAWPS implements GeoServerProcess {
             namespace.setURI("http://" + crismaWorkspace.getName());
             catalog.add(namespace);
         }
+        return namespace;
+    }
 
-        DataStoreInfo crismaDatastore = catalog.getDataStoreByName(CRISMA_WORKSPACE, CRISMA_DATASTORE);
+    private DataStoreInfo getDataStore(WorkspaceInfo crismaWorkspace) {
+        DataStoreInfo crismaDatastore = catalog.getDataStoreByName(
+                Utils.CRISMA_WORKSPACE, Utils.CRISMA_DATASTORE);
         logger.info("crismaDatastore: " + crismaDatastore);
         if (crismaDatastore == null) {
             logger.info("Creating datastore");
-//            crismaDatastore = catalog.getFactory().createDataStore();
-//            crismaDatastore.setName(CRISMA_DATASTORE);
-//            crismaDatastore.setWorkspace(crismaWorkspace);
-//            crismaDatastore.setType();
-//            catalog.add(crismaDatastore);
-
             DataStoreInfoImpl postgis = new DataStoreInfoImpl(this.catalog);
-            postgis.setName(CRISMA_DATASTORE);
+            postgis.setName(Utils.CRISMA_DATASTORE);
             postgis.setType("PostGIS");
             postgis.setEnabled(true);
             postgis.setWorkspace(crismaWorkspace);
@@ -154,13 +200,18 @@ public class CRISMAWPS implements GeoServerProcess {
             params.put("dbtype", "postgis");
             params.put("Loose bbox", "true");
             params.put("Estimated extends", "true");
-            params.put("namespace", "http://" + CRISMA_WORKSPACE);
+            params.put("namespace", "http://" + Utils.CRISMA_WORKSPACE);
             postgis.setConnectionParameters(params);
             crismaDatastore = postgis;
             catalog.add(crismaDatastore);
         }
+        return crismaDatastore;
+    }
 
-        FeatureTypeInfo featureTypeInfo = this.catalog.getFeatureTypeByDataStore(crismaDatastore, "intens_grid");
+    private FeatureTypeInfo getFeatureType(WorkspaceInfo crismaWorkspace,
+            DataStoreInfo crismaDatastore, NamespaceInfo namespace) throws Exception {
+        FeatureTypeInfo featureTypeInfo = this.catalog.getFeatureTypeByDataStore(
+                crismaDatastore, "intens_grid");
 
         LayerInfo layer = this.catalog.getLayerByName("intens_grid");
 
@@ -241,13 +292,14 @@ public class CRISMAWPS implements GeoServerProcess {
                 if (ns != null && !ns.getPrefix().equals(crismaWorkspace)) {
                     //TODO: change this once the two can be different and we untie namespace
                     // from workspace
-                    logger.warning("Namespace: " + ns.getPrefix() + " does not match workspace: " + crismaWorkspace + ", overriding.");
+                    logger.warning("Namespace: " + ns.getPrefix()
+                            + " does not match workspace: " + crismaWorkspace + ", overriding.");
                     ns = null;
                 }
 
                 if (ns == null) {
                     //infer from workspace
-                    ns = catalog.getNamespaceByPrefix(CRISMA_WORKSPACE);
+                    ns = catalog.getNamespaceByPrefix(Utils.CRISMA_WORKSPACE);
                     featureTypeInfo.setNamespace(ns);
                 }
 
@@ -259,27 +311,13 @@ public class CRISMAWPS implements GeoServerProcess {
                 catalog.add(new CatalogBuilder(catalog).buildLayer(featureTypeInfo));
             }
         }
+        return featureTypeInfo;
+    }
 
-//        LayerInfo l = catalog.getFactory().createLayer();
-//        // l.setName("foo");
-//        l.setResource(featureTypeInfo);
-//
-//        StyleInfo s = catalog.getStyleByName("foostyle");
-//        l.setDefaultStyle(s);
-//        catalog.add(l);
-        //This example issues the same query as before but uses a PreparedStatement and a bind value in the query.
-//        int foovalue = 500;
-//        PreparedStatement st = conn.prepareStatement("SELECT * FROM mytable WHERE columnfoo = ?");
-//        st.setInt(1, foovalue);
-//        ResultSet rs = st.executeQuery();
-//        while (rs.next()) {
-//            System.out.print("Column 1 returned ");
-//            System.out.println(rs.getString(1));
-//        }
-//        rs.close();
-//        st.close();
-//        logger.info("Processo Eseguito: " + layer != null ? layer.getPath() : "-");
-        return "Processo Eseguito";
+    private void updateTransition(String message, Transition transition, int runningPhase,
+            Status status) {
+        ICMMHelper.updateTransition(transition, status, runningPhase, 3, message);
+        client.putTransition(transition);
     }
 
     private Connection connectToDatabaseOrDie() {
