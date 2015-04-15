@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.geoserver.catalog.AttributeTypeInfo;
@@ -45,7 +46,7 @@ import org.springframework.stereotype.Component;
 public class Utils {
 
     public final static String CRISMA_WORKSPACE = "crisma";
-    public final static String CRISMA_DATASTORE = "hazard";
+//    public final static String CRISMA_DATASTORE = "hazard";
 
     private Logger logger = Logger.getLogger("org.geosdi.wps");
 
@@ -96,14 +97,14 @@ public class Utils {
         return namespace;
     }
 
-    public DataStoreInfo getDataStore(WorkspaceInfo crismaWorkspace) {
+    public DataStoreInfo getDataStore(WorkspaceInfo crismaWorkspace, String schemaName) {
         DataStoreInfo crismaDatastore = catalog.getDataStoreByName(
-                Utils.CRISMA_WORKSPACE, Utils.CRISMA_DATASTORE);
+                Utils.CRISMA_WORKSPACE, schemaName);
         logger.info("crismaDatastore: " + crismaDatastore);
         if (crismaDatastore == null) {
             logger.info("Creating datastore");
             DataStoreInfoImpl postgis = new DataStoreInfoImpl(this.catalog);
-            postgis.setName(Utils.CRISMA_DATASTORE);
+            postgis.setName(schemaName);
             postgis.setType("PostGIS");
             postgis.setEnabled(true);
             postgis.setWorkspace(crismaWorkspace);
@@ -113,7 +114,7 @@ public class Utils {
             params.put("passwd", properties.getProperty("db.passwd"));
             params.put("host", properties.getProperty("db.host"));
             params.put("database", properties.getProperty("db.name"));
-            params.put("schema", properties.getProperty("db.schema"));
+            params.put("schema", schemaName);
             params.put("dbtype", "postgis");
             params.put("Loose bbox", "true");
             params.put("Estimated extends", "true");
@@ -126,11 +127,15 @@ public class Utils {
     }
 
     public FeatureTypeInfo getFeatureType(WorkspaceInfo crismaWorkspace,
-            DataStoreInfo crismaDatastore, NamespaceInfo namespace) throws Exception {
-        FeatureTypeInfo featureTypeInfo = this.catalog.getFeatureTypeByDataStore(
-                crismaDatastore, "intens_grid");
+            DataStoreInfo crismaDatastore, NamespaceInfo namespace,
+            String featureName) throws Exception {
 
-        LayerInfo layer = this.catalog.getLayerByName("intens_grid");
+        String newFeatureName = featureName + UUID.randomUUID().toString();
+
+        FeatureTypeInfo featureTypeInfo = this.catalog.getFeatureTypeByDataStore(
+                crismaDatastore, newFeatureName);
+
+        LayerInfo layer = this.catalog.getLayerByName(newFeatureName);
 
         if (featureTypeInfo != null && layer == null) {
             this.catalog.remove(featureTypeInfo);
@@ -145,10 +150,11 @@ public class Utils {
 
             featureTypeInfo.setStore(crismaDatastore);
             featureTypeInfo.setNamespace(namespace);
-            featureTypeInfo.setName("intens_grid");
-            featureTypeInfo.setNativeName("intens_grid");
+            featureTypeInfo.setName(newFeatureName);
+            featureTypeInfo.setNativeName(featureName);
             logger.info("BUG overriding existing feature type");
 //            this.catalog.detach(featureTypeInfo);
+            logger.info("FeatureTypeInfo: " + featureTypeInfo);
             this.catalog.add(featureTypeInfo);
             logger.info("AFTER Creating featureTypeInfo");
 
@@ -173,7 +179,8 @@ public class Utils {
                 boolean virtual = mdm != null && mdm.containsKey(FeatureTypeInfo.JDBC_VIRTUAL_TABLE);
 
                 if (!virtual && !typeExists) {
-                    gtds.createSchema(buildFeatureType(featureTypeInfo));
+                    SimpleFeatureType simpleFeatureType = buildFeatureType(featureTypeInfo);
+                    gtds.createSchema(simpleFeatureType);
                     // the attributes created might not match up 1-1 with the actual spec due to
                     // limitations of the data store, have it re-compute them
                     featureTypeInfo.getAttributes().clear();
@@ -224,16 +231,21 @@ public class Utils {
                 catalog.validate(featureTypeInfo, true).throwIfInvalid();
                 catalog.add(featureTypeInfo);
 
+                LayerInfo layerInfo = new CatalogBuilder(catalog).buildLayer(featureTypeInfo);
+                logger.info("Layer Info result: " + layerInfo.toString());
+                logger.info("Resource Info result: " + layerInfo.getResource());
+                layerInfo.setName(newFeatureName);
                 //create a layer for the feature type
-                catalog.add(new CatalogBuilder(catalog).buildLayer(featureTypeInfo));
+                catalog.add(layerInfo);
             }
         }
+        logger.info("Published feature with name: " + featureTypeInfo.getName());
         return featureTypeInfo;
     }
 
     public void updateTransition(String message, Transition transition, int runningPhase,
             int processStepsNumber, Transition.Status status) {
-        ICMMHelper.updateTransition(transition, status, runningPhase, 
+        ICMMHelper.updateTransition(transition, status, runningPhase,
                 processStepsNumber, message);
         client.putTransition(transition);
     }
@@ -289,6 +301,10 @@ public class Utils {
             builder.add(ati.getName(), ati.getBinding());
         }
         return builder.buildFeatureType();
+    }
+
+    public String generateWorldStateName(int wsId) {
+        return "ws_" + wsId;
     }
 
     public Properties getProperties() {

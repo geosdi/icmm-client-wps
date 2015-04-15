@@ -8,7 +8,6 @@ package org.geosdi.wps;
 import org.geosdi.wps.utility.Utils;
 import eu.crismaproject.icmm.icmmhelper.entity.Transition;
 import eu.crismaproject.icmm.icmmhelper.entity.Worldstate;
-import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -32,7 +31,7 @@ public class HazardModel implements GeoServerProcess {
     /*
      * Example link to execute the WPS:
      * http://192.168.1.30:8080/geoserver/wps?service=WPS&version=1.0.0&request=Execute&identifier=gs:HazardModel&datainputs=isShakemap=true;shakeMapName=name;latitude=5;magnitude=2;longitude=5;depth=10;
-     Swaggle http://crisma.cismet.de/pilotD/icms/
+     * Swaggle http://crisma.cismet.de/pilotD/icms/
      */
     private Logger logger = Logger.getLogger("org.geosdi.wps");
     private final int PROCESS_PHASES = 3;
@@ -51,14 +50,14 @@ public class HazardModel implements GeoServerProcess {
             @DescribeParameter(name = "longitude", description = "Epi center longitude") Float lon,
             @DescribeParameter(name = "depth", description = "Epi center longitude") Float depth,
             @DescribeParameter(name = "magnitude", description = "Earthquake magnitude") Float mag,
-            @DescribeParameter(name = "wsID", description = "WS ID") Integer id)
+            @DescribeParameter(name = "wsID", description = "WS ID") Integer wsId)
             throws Exception {
 
         logger.info("Start WPS Process");
 
         Transition transition = this.utils.initProcessTransition(
                 "Hazard Model Elaboration",
-                "WPS Hazard Model Elaboration", 3);
+                "WPS Hazard Model Elaboration", PROCESS_PHASES);
 
         //START ICMM 
         //Creo il ws a manella 
@@ -68,7 +67,7 @@ public class HazardModel implements GeoServerProcess {
 //        this.utils.getClient().putWorldstate(worldstate); 
         //Richiedo il ws esistente  con id 1 in attesa di far funzionare 
         //la generazione dei world states
-        Worldstate worldstate = this.utils.getClient().getWorldstate(1, 3, true);
+        Worldstate worldstate = this.utils.getClient().getWorldstate(1, PROCESS_PHASES, true);
 
         logger.info("After world state initialization");
 
@@ -80,10 +79,9 @@ public class HazardModel implements GeoServerProcess {
 //        this.utils.getClient().putEntity(targetDataItem); //foreach result
 //        List<DataItem> resultDataItems = Lists.<DataItem>newArrayList();
 //        resultDataItems.add(targetDataItem);
-
         //Waiting for API method to save the WS at the END of the operation
         //END ICMM
-        logger.info("After ICMM code");
+        logger.info("After ICMM Helper code");
         Connection conn = this.utils.connectToDatabaseOrDie();
         logger.info("Connecting to the DB");
         Statement st = conn.createStatement();
@@ -98,11 +96,14 @@ public class HazardModel implements GeoServerProcess {
 //
 //        ResultSet rs = prepareStatement.executeQuery();
 //        ResultSet rs = st.executeQuery("select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3)");
-        //                append("aquila.ccr_ws_mk('ws_00', 2)").
-        StringBuilder stringBuilder = new StringBuilder("select aquila.v2_hazard_elaboration(");
+        //                append("aquila.ccr_ws_mk('ws_0', 2)").
+        String worldStateName = this.utils.generateWorldStateName(wsId);
+        //TODO: Copiare il world state prima di usarlo
+
+        StringBuilder stringBuilder = new StringBuilder("select aquila.v2_hazard_elaboration('");
         stringBuilder.
-                append("'ws_1'").
-                append(",").
+                append(worldStateName).
+                append("',").
                 append(isShakeMap).
                 append(",").
                 append(shakeMapName == null ? "''" : "'" + shakeMapName + "'").
@@ -122,20 +123,20 @@ public class HazardModel implements GeoServerProcess {
             logger.info("Metadata column count: " + rs.getMetaData().getColumnCount());
             logger.info(rs.getString(1));
         }
-        rs.close();
         this.utils.updateTransition("Fetching results", transition,
                 2, PROCESS_PHASES, Transition.Status.RUNNING);
 //        client.getWorldstate(1).
+        rs.close();
         st.close();
 
         WorkspaceInfo crismaWorkspace = this.utils.getWorkspace();
         //create a namespace corresponding to the workspace if one does not 
         // already exist
         NamespaceInfo namespace = this.utils.getNamespace(crismaWorkspace);
-        DataStoreInfo crismaDatastore = this.utils.getDataStore(crismaWorkspace);
+        DataStoreInfo crismaDatastore = this.utils.getDataStore(crismaWorkspace, worldStateName);
 
         FeatureTypeInfo featureTypeInfo = this.utils.getFeatureType(
-                crismaWorkspace, crismaDatastore, namespace);
+                crismaWorkspace, crismaDatastore, namespace, worldStateName);
 //        LayerInfo l = catalog.getFactory().createLayer();
 //        // l.setName("foo");
 //        l.setResource(featureTypeInfo);
