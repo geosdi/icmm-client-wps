@@ -5,11 +5,15 @@
  */
 package org.geosdi.wps;
 
+import eu.crismaproject.icmm.icmmhelper.entity.DataItem;
 import eu.crismaproject.icmm.icmmhelper.entity.Transition;
 import eu.crismaproject.icmm.icmmhelper.entity.Worldstate;
+import eu.crismaproject.icmm.icmmhelper.pilotD.Categories;
+import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
@@ -120,6 +124,7 @@ public class TDVModel implements GeoServerProcess {
             int targetWorldSateID = wsId;
 
             for (int i = 0; i < shakeMapNameList.size(); i++) {
+                final List<DataItem> resultItems = new ArrayList<DataItem>();
                 String worldStateName = this.utils.generateWorldStateName(targetWorldSateID);
                 //Executing World State copy
                 resultSet = statement.executeQuery("select aquila.ccr_ws_mk('" + worldStateName + "', 2)");
@@ -130,6 +135,13 @@ public class TDVModel implements GeoServerProcess {
                     worldStateName = this.utils.generateWorldStateName(targetWorldSateID);
                     logger.info("Result for world state copy operation: " + targetWorldSateID);
                 }
+                
+                final DataItem schemaItem = PilotDHelper.getSchemaItem(worldStateName);
+                this.utils.getClient().insertSelfRefAndId(schemaItem);
+                this.utils.getClient().putEntity(schemaItem);
+                resultItems.add(schemaItem);
+                
+                // execute building damage
                 DataStoreInfo crismaDatastore = this.utils.getDataStore(crismaWorkspace, worldStateName);
 
                 /*
@@ -173,6 +185,13 @@ public class TDVModel implements GeoServerProcess {
                         crismaWorkspace, crismaDatastore, namespace, "intens_grid");
                 //TODO: Use the name to push result on ICMM repo
                 String intensGridName = featureTypeInfo.getName();
+                
+                final DataItem itensityGridItem = PilotDHelper.getWmsDataItem(
+                        intensGridName, "Intensity Grid", Categories.INTENSITY_GRID);
+                this.utils.getClient().insertSelfRefAndId(itensityGridItem);
+                this.utils.getClient().putEntity(itensityGridItem);
+                resultItems.add(itensityGridItem);
+                
                 featureTypeInfo = this.utils.getFeatureType(
                         crismaWorkspace, crismaDatastore, namespace, "builing_damage_varmin");
                 featureTypeInfo = this.utils.getFeatureType(
