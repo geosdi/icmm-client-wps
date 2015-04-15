@@ -42,8 +42,6 @@
             <artifactId>gs-main</artifactId>
             <scope>provided</scope>
             <version>${gs.version}</version>
-            <!--            <classifier>tests</classifier>
-            <scope>test</scope>-->
         </dependency>
         
         <dependency>
