@@ -129,6 +129,7 @@ public class TDVModel implements GeoServerProcess {
                     worldStateName = this.utils.generateWorldStateName(targetWorldSateID);
                     logger.info("Result for world state copy operation: " + targetWorldSateID);
                 }
+//                Thread.sleep(30000);
                 //*WF* Write target schema dataItem to ICMM
                 DataItem schemaItem = this.utils.writeTargetSchemaDataItem(worldStateName);
                 resultItems.add(schemaItem);
@@ -188,7 +189,8 @@ public class TDVModel implements GeoServerProcess {
                 }
                 //*WF* Publishing intensity grid, building damage (min/max/avg) on WMS
                 FeatureTypeInfo featureTypeInfo = this.utils.getOrPublishFeatureType(
-                        crismaWorkspace, crismaDatastore, namespace, "intens_grid");
+                        crismaWorkspace, crismaDatastore, namespace, "intens_grid",
+                        "crisma:intens_grid");
 
                 //*WF* Write intensity grid, building damage (min/max/avg) dataitems to ICMM
                 String intensGridName = featureTypeInfo.getName();

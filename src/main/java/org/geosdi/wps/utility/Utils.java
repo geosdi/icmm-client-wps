@@ -31,6 +31,7 @@ import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.NamespaceInfo;
+import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.WorkspaceInfo;
 import org.geoserver.catalog.impl.DataStoreInfoImpl;
 import org.geotools.data.DataAccess;
@@ -129,9 +130,35 @@ public class Utils {
         return crismaDatastore;
     }
 
+    /**
+     *
+     * @param crismaWorkspace
+     * @param crismaDatastore
+     * @param namespace
+     * @param featureName
+     * @return
+     * @throws Exception
+     */
     public FeatureTypeInfo getOrPublishFeatureType(WorkspaceInfo crismaWorkspace,
             DataStoreInfo crismaDatastore, NamespaceInfo namespace,
             String featureName) throws Exception {
+        return this.getOrPublishFeatureType(crismaWorkspace, crismaDatastore,
+                namespace, featureName, null);
+    }
+
+    /**
+     *
+     * @param crismaWorkspace
+     * @param crismaDatastore
+     * @param namespace
+     * @param featureName
+     * @param styleName
+     * @return
+     * @throws Exception
+     */
+    public FeatureTypeInfo getOrPublishFeatureType(WorkspaceInfo crismaWorkspace,
+            DataStoreInfo crismaDatastore, NamespaceInfo namespace,
+            String featureName, String styleName) throws Exception {
 
         String newFeatureName = featureName + UUID.randomUUID().toString();
 
@@ -237,8 +264,14 @@ public class Utils {
                 LayerInfo layerInfo = new CatalogBuilder(catalog).buildLayer(featureTypeInfo);
                 logger.info("Layer Info result: " + layerInfo.toString());
                 logger.info("Resource Info result: " + layerInfo.getResource());
+
                 layerInfo.setName(newFeatureName);
                 //create a layer for the feature type
+                if (styleName != null) {
+                    StyleInfo s = catalog.getStyleByName(styleName);
+                    layerInfo.setDefaultStyle(s);
+                }
+
                 catalog.add(layerInfo);
             }
         }
