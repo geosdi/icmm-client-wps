@@ -46,7 +46,7 @@ public class TDVModel implements GeoServerProcess {
      */
     private Logger logger = Logger.getLogger("org.geosdi.wps");
 
-    private int PROCESS_PHASES = 3;
+    private int PROCESS_PHASES = 2;
 
     private Utils utils;
 
@@ -71,7 +71,7 @@ public class TDVModel implements GeoServerProcess {
             @DescribeParameter(name = "wsID", description = "WS ID") Integer wsId)
             throws Exception {
 
-        this.PROCESS_PHASES += noOfEvents * 3;
+        this.PROCESS_PHASES += noOfEvents * 5;
 
 //        if (shakeMapName != null && shakeMapName.size() > 0) {
 //            final String[] names = (String[]) shakeMapName.toArray(new String[shakeMapName.size()]);
