@@ -42,7 +42,7 @@ public class TDVModel implements GeoServerProcess {
      * Example link to execute the WPS:
      * http://192.168.1.30:8080/geoserver/wps?service=WPS&version=1.0.0&request=Execute&identifier=gs:HazardModel&datainputs=isShakemap=true;shakeMapName=name;latitude=5;magnitude=2;longitude=5;depth=10;
      * Example cURL request:
-     * curl -u admin:m_Loa5hJz8Vb -H 'Content-type: xml' -XPOST -d@'/home/andypower/tdv_wps.xml' http://wps.plinivs.it:8080/geoserver/wps
+     * curl -u admin:m_Loa5hJz8Vb -H 'Content-type: xml' -XPOST -d@'/home/andypower/tdv_wps_Sync.xml' http://wps.plinivs.it:8080/geoserver/wps
      */
     private Logger logger = Logger.getLogger("org.geosdi.wps");
 
@@ -56,9 +56,6 @@ public class TDVModel implements GeoServerProcess {
 
     @DescribeResult(name = "intens grid", description = "WFS link for intensity distribution map")
     public String execute(
-            @DescribeParameter(name = "applyTDV", description
-                    = "Indicates whether the TDV model shall be used to calculate "
-                    + "a sequence of events with updated inventory") boolean applyTDV,
             @DescribeParameter(name = "noOfEvents", description = "The number of events "
                     + "that shall be simulated by the TDV model, not evaluated "
                     + "if apply TDV is false. Defaults to '1' (one). "
@@ -285,7 +282,6 @@ public class TDVModel implements GeoServerProcess {
                 //calcolo nomeroMorti: casualties somma colonna deads
                 //calcolo senza casa: casualties somma colonna homeless
                 //calcolo injuried: casualties somma colonna injuried
-                
                 //*WF* Write indicator dataitems to ICMM
                 Indicators indicators = PilotDHelper.getIndicators(noOfEvents, noOfEvents, noOfEvents, depth, depth, targetWorldSateID, longitude, noOfEvents, targetWorldSateID, noOfEvents, targetWorldSateID, noOfEvents);
                 DataItem indicatorsDataItem = PilotDHelper.getIndicatorDataItem(indicators);
