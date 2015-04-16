@@ -106,7 +106,7 @@ public class TDVModel implements GeoServerProcess {
             int i = 1;
             SimpleFeatureIterator iterator = eqTDVParList.features();
             while (iterator.hasNext()) {
-                        //*WF* Fetch origin worldstate (WS) from ICMM
+                //*WF* Fetch origin worldstate (WS) from ICMM
                 //I'm asking for the existent WS having id 1 
                 //waiting for the world state generation
                 Worldstate worldstate = this.utils.getClient().getWorldstate(1, PROCESS_PHASES, true);
@@ -168,7 +168,7 @@ public class TDVModel implements GeoServerProcess {
                 stringBuilder.
                         append(worldStateName).
                         append("',").
-                        append(i).//TODO: check if the nstep integer value referes to the number of iteration
+                        append(i).
                         append(",").
                         append(useShakeMap).
                         append(",").
@@ -225,6 +225,7 @@ public class TDVModel implements GeoServerProcess {
                 this.utils.updateTransition("Running building inventory update for round: " + i,
                         transition, i + 3, PROCESS_PHASES, Transition.Status.RUNNING);
 
+                //Waiting for Stefano procedure
                 //TODO: Add the code that updates the building inventory
                 //TODO: Publish building inventory on WMS
                 //*WF* Write building inventory dataitems to ICMM
@@ -238,23 +239,39 @@ public class TDVModel implements GeoServerProcess {
                 this.utils.updateTransition("Running people impact for round: " + i,
                         transition, i + 4, PROCESS_PHASES, Transition.Status.RUNNING);
 
-                //TODO: Add the code that execute people impact procedure
-                //TODO: Publish people impact (min/max/avg) on WMS
+                //*WF* Execute people impact procedure
+                stringBuilder = new StringBuilder("select aquila.v2_casualties('");
+                stringBuilder.
+                        append(worldStateName).
+                        append("',").
+                        append(i).
+                        append(")");
+                resultSet = statement.executeQuery(stringBuilder.toString());
+
+                //*WF* Publish people impact (min/max/avg) on WMS
                 //*WF* Write people impact (min/max/avg) dataitems to ICMM
-                String peopleImpactAVGName = "";
+                FeatureTypeInfo casualitiesFeatures = this.utils.getOrPublishFeatureType(
+                        crismaWorkspace, crismaDatastore, namespace, "casualities");
+
+                String peopleImpactAVGName = casualitiesFeatures.getName();
                 DataItem peopleImpactDataItem = this.utils.writeWMSDataItem(
                         peopleImpactAVGName, "PEOPLE IMPACT AVG", Categories.PEOPLE_IMPACT_AVG);
                 resultItems.add(peopleImpactDataItem);
 
-                String peopleImpactMaxName = "";
-                peopleImpactDataItem = this.utils.writeWMSDataItem(
-                        peopleImpactMaxName, "PEOPLE IMPACT MAX", Categories.PEOPLE_IMPACT_MAX);
-                resultItems.add(peopleImpactDataItem);
-
-                String peopleImpactMinName = "";
+                casualitiesFeatures = this.utils.getOrPublishFeatureType(
+                        crismaWorkspace, crismaDatastore, namespace, "casualities_varmin");
+                String peopleImpactMinName = casualitiesFeatures.getName();;
                 peopleImpactDataItem = this.utils.writeWMSDataItem(
                         peopleImpactMinName, "PEOPLE IMPACT MIN", Categories.PEOPLE_IMPACT_MIN);
                 resultItems.add(peopleImpactDataItem);
+
+                casualitiesFeatures = this.utils.getOrPublishFeatureType(
+                        crismaWorkspace, crismaDatastore, namespace, "casualities_varmax");
+                String peopleImpactMaxName = casualitiesFeatures.getName();
+                peopleImpactDataItem = this.utils.writeWMSDataItem(
+                        peopleImpactMaxName, "PEOPLE IMPACT MAX", Categories.PEOPLE_IMPACT_MAX);
+                resultItems.add(peopleImpactDataItem);
+//
 
                 //*WF* Update CCIM transition object: Calculating indicators for round #
                 //&& Write transition object to ICMM
@@ -263,10 +280,16 @@ public class TDVModel implements GeoServerProcess {
 
                 //TODO: Add the code that calculates the indicators
                 //*WF* Write indicator dataitems to ICMM
+                //Calcolo lost builings: tabella building damage somma totale colonne nd4+nd5
+                //Calcolo unsafeBuildings builings: tabella building damage somma totale colonne nd3
+                //Calcolo economic cost: select su di una procedura
+                //calcolo nomeroMorti: casualties somma colonna deads
+                //calcolo senza casa: casualties somma colonna homeless
+                //calcolo injuried: casualties somma colonna injuried
                 Indicators indicators = PilotDHelper.getIndicators(noOfEvents, noOfEvents, noOfEvents, depth, depth, targetWorldSateID, longitude, noOfEvents, targetWorldSateID, noOfEvents, targetWorldSateID, noOfEvents);
                 DataItem indicatorsDataItem = PilotDHelper.getIndicatorDataItem(indicators);
                 resultItems.add(indicatorsDataItem);
-                
+
                 //*WF* Write new World State to ICMM
                 this.utils.getClient().putWorldstate(worldstate);
 
