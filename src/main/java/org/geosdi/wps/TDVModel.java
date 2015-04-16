@@ -109,7 +109,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Fetch origin worldstate (WS) from ICMM
                 //I'm asking for the existent WS having id 1 
                 //waiting for the world state generation
-                Worldstate worldstate = this.utils.getClient().getWorldstate(1, PROCESS_PHASES, true);
+                Worldstate worldstate = this.utils.getClient().getWorldstate(1, 3, true);
                 //*WF* Extract origin schema from WS
                 String originSchema = PilotDHelper.getSchema(worldstate);
                 logger.info("Origin Schema: " + originSchema);
@@ -279,21 +279,22 @@ public class TDVModel implements GeoServerProcess {
                         transition, i + 5, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //TODO: Add the code that calculates the indicators
-                //*WF* Write indicator dataitems to ICMM
                 //Calcolo lost builings: tabella building damage somma totale colonne nd4+nd5
                 //Calcolo unsafeBuildings builings: tabella building damage somma totale colonne nd3
                 //Calcolo economic cost: select su di una procedura
                 //calcolo nomeroMorti: casualties somma colonna deads
                 //calcolo senza casa: casualties somma colonna homeless
                 //calcolo injuried: casualties somma colonna injuried
+                
+                //*WF* Write indicator dataitems to ICMM
                 Indicators indicators = PilotDHelper.getIndicators(noOfEvents, noOfEvents, noOfEvents, depth, depth, targetWorldSateID, longitude, noOfEvents, targetWorldSateID, noOfEvents, targetWorldSateID, noOfEvents);
                 DataItem indicatorsDataItem = PilotDHelper.getIndicatorDataItem(indicators);
-                resultItems.add(indicatorsDataItem);
 
+                worldstate = PilotDHelper.getWorldstate(worldstate, resultItems,
+                        indicatorsDataItem, transition, worldStateName, worldStateName);
                 //*WF* Write new World State to ICMM
                 this.utils.getClient().putWorldstate(worldstate);
 
-                //TODO: Add the code that writes the ne worldstate to ICMM
                 i++;
             }
         } catch (Exception e) {
