@@ -135,7 +135,7 @@ public class HazardModel implements GeoServerProcess {
         NamespaceInfo namespace = this.utils.getNamespace(crismaWorkspace);
         DataStoreInfo crismaDatastore = this.utils.getDataStore(crismaWorkspace, worldStateName);
 
-        FeatureTypeInfo featureTypeInfo = this.utils.getFeatureType(
+        FeatureTypeInfo featureTypeInfo = this.utils.getOrPublishFeatureType(
                 crismaWorkspace, crismaDatastore, namespace, worldStateName);
 //        LayerInfo l = catalog.getFactory().createLayer();
 //        // l.setName("foo");

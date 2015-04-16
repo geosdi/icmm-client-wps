@@ -25,16 +25,16 @@
       "properties": {
         "useShakemap": true,
         "ShakeMapName": "grid_xyz_20090406",
-        "Latitude": 42.47,
-        "Longitude": 42.47,
+        "Latitude": 42.303,
+        "Longitude": 13.486,
         "Magnitude": 4.5,
         "Depth": 10.0
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          42.47,
-          42.47
+          42.303,
+          13.486
         ]
       }
     },
@@ -43,16 +43,16 @@
       "properties": {
         "useShakemap": false,
         "ShakeMapName": "grid_xyz_20090612",
-        "Latitude": 42.47,
-        "Longitude": 42.47,
+        "Latitude": 42.303,
+        "Longitude": 13.486,
         "Magnitude": 4.5,
         "Depth": 10.0
       },
       "geometry": {
         "type": "Point",
         "coordinates": [
-          16.875,
-          40.71
+          42.303,
+          13.486
         ]
       }
     }

@@ -7,7 +7,10 @@ package org.geosdi.wps.utility;
 
 import eu.crismaproject.icmm.icmmhelper.ICMMClient;
 import eu.crismaproject.icmm.icmmhelper.ICMMHelper;
+import eu.crismaproject.icmm.icmmhelper.entity.DataItem;
 import eu.crismaproject.icmm.icmmhelper.entity.Transition;
+import eu.crismaproject.icmm.icmmhelper.pilotD.Categories;
+import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -126,7 +129,7 @@ public class Utils {
         return crismaDatastore;
     }
 
-    public FeatureTypeInfo getFeatureType(WorkspaceInfo crismaWorkspace,
+    public FeatureTypeInfo getOrPublishFeatureType(WorkspaceInfo crismaWorkspace,
             DataStoreInfo crismaDatastore, NamespaceInfo namespace,
             String featureName) throws Exception {
 
@@ -241,6 +244,22 @@ public class Utils {
         }
         logger.info("Published feature with name: " + featureTypeInfo.getName());
         return featureTypeInfo;
+    }
+
+    public DataItem writeTargetSchemaDataItem(String worldStateName) {
+        final DataItem schemaItem = PilotDHelper.getSchemaItem(worldStateName);
+        this.client.insertSelfRefAndId(schemaItem);
+        this.client.putEntity(schemaItem);
+        return schemaItem;
+    }
+
+    public DataItem writeWMSDataItem(String layerName, String displayName,
+            Categories category) {
+        final DataItem wmsDataItem = PilotDHelper.getWmsDataItem(
+                layerName, displayName, category);
+        this.client.insertSelfRefAndId(wmsDataItem);
+        this.client.putEntity(wmsDataItem);
+        return wmsDataItem;
     }
 
     public void updateTransition(String message, Transition transition, int runningPhase,
