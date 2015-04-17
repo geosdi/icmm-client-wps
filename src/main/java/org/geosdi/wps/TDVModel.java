@@ -16,8 +16,10 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import jersey.repackaged.com.google.common.collect.Lists;
+import org.geosdi.wps.utility.IndicatorCalculator;
 import org.geosdi.wps.utility.Utils;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
@@ -70,17 +72,6 @@ public class TDVModel implements GeoServerProcess {
 
         this.PROCESS_PHASES += noOfEvents * 5;
 
-//        if (shakeMapName != null && shakeMapName.size() > 0) {
-//            final String[] names = (String[]) shakeMapName.toArray(new String[shakeMapName.size()]);
-//            logger.info("names: " + names.length);
-//            logger.info("shakeMapName 1: " + names);
-//            logger.info("shakeMapName 2: " + names[0]);
-//            logger.info("shakeMapName 3: " + names[1]);
-//        }
-//        logger.info("shakeMapName: " + shakeMapNameList.size());
-//        logger.info("shakeMapName 1: " + shakeMapNameList);
-//        logger.info("shakeMapName 2: " + shakeMapNameList.get(0));
-//        logger.info("shakeMapName 3: " + shakeMapNameList.get(1));
         //*WF* Generating transition object && write transition object to ICMM
         Transition transition = this.utils.initProcessTransition(
                 "Time Dependent Vulnerability Elaboration",
@@ -109,8 +100,8 @@ public class TDVModel implements GeoServerProcess {
                 Worldstate worldstate = this.utils.getClient().getWorldstate(1, 3, true);
                 //*WF* Extract origin schema from WS
                 String originSchema = PilotDHelper.getSchema(worldstate);
-                logger.info("Origin Schema: " + originSchema);
-                logger.info("After world state fetching");
+                logger.log(Level.INFO, "Origin Schema: " + originSchema);
+                logger.log(Level.INFO, "After world state fetching");
 
                 //*WF* Update CCIM transition object: Preparing workspace for round #
                 //&& Write transition object to ICMM
@@ -122,13 +113,13 @@ public class TDVModel implements GeoServerProcess {
                 String worldStateName = this.utils.generateWorldStateName(targetWorldSateID);
                 //Executing World State copy
                 resultSet = statement.executeQuery("select aquila.ccr_ws_mk('" + worldStateName + "', 2)");
+                logger.log(Level.FINEST, "Creating World State copy, result metadata column count: "
+                        + resultSet.getMetaData().getColumnCount());
                 while (resultSet.next()) {
-                    logger.info("Creating World State copy, result metadata column count: "
-                            + resultSet.getMetaData().getColumnCount());
                     targetWorldSateID = resultSet.getInt(1);
-                    worldStateName = this.utils.generateWorldStateName(targetWorldSateID);
-                    logger.info("Result for world state copy operation: " + targetWorldSateID);
                 }
+                worldStateName = this.utils.generateWorldStateName(targetWorldSateID);
+                logger.log(Level.INFO, "Result for world state copy operation: " + targetWorldSateID);
 //                Thread.sleep(30000);
                 //*WF* Write target schema dataItem to ICMM
                 DataItem schemaItem = this.utils.writeTargetSchemaDataItem(worldStateName);
@@ -143,14 +134,8 @@ public class TDVModel implements GeoServerProcess {
                 DataStoreInfo crismaDatastore = this.utils.getDataStore(crismaWorkspace, worldStateName);
 
                 /*
-                 aquila.v2_building_damage(sch_name text, 
-                 nstep integer, 
-                 shakemap boolean, 
-                 map_name text, 
-                 lat real, 
-                 lon real, 
-                 depth real, 
-                 magnitudo real)
+                 aquila.v2_building_damage(sch_name text, nstep integer, shakemap boolean, 
+                 map_name text, lat real, lon real, depth real, magnitudo real)
                  */
                 boolean useShakeMap = (Boolean) eqTDVPar.getAttribute("useShakemap");
                 String shakeMapName = (String) eqTDVPar.getAttribute("ShakeMapName");
@@ -158,7 +143,7 @@ public class TDVModel implements GeoServerProcess {
                 Double longitude = (Double) eqTDVPar.getAttribute("Longitude");
                 Double magnitude = (Double) eqTDVPar.getAttribute("Magnitude");
                 Double depth = (Double) eqTDVPar.getAttribute("Depth");
-//                logger.info("Params to elaborate: " + useShakeMap + 
+//                logger.log(Level.INFO, "Params to elaborate: " + useShakeMap + 
 //                        shakeMapName + longitude + latitude + 
 //                        magnitude + depth);
 
@@ -181,11 +166,10 @@ public class TDVModel implements GeoServerProcess {
                         append(magnitude).
                         append(")");
                 resultSet = statement.executeQuery(stringBuilder.toString());
-                logger.info("Query Executed: " + stringBuilder.toString());
+                logger.log(Level.INFO, "Query Executed: " + stringBuilder.toString());
                 while (resultSet.next()) {
                     //Catching column 1 value
-                    logger.info("Metadata column count: " + resultSet.getMetaData().getColumnCount());
-                    logger.info(resultSet.getString(1));
+                    logger.log(Level.INFO, resultSet.getString(1));
                 }
                 //*WF* Publishing intensity grid, building damage (min/max/avg) on WMS
                 FeatureTypeInfo featureTypeInfo = this.utils.getOrPublishFeatureType(
@@ -277,15 +261,9 @@ public class TDVModel implements GeoServerProcess {
                 this.utils.updateTransition("Calculating indicators for round: " + i,
                         transition, i + 5, PROCESS_PHASES, Transition.Status.RUNNING);
 
-                //TODO: Add the code that calculates the indicators
-                //Calcolo lost builings: tabella building damage somma totale colonne nd4+nd5
-                //Calcolo unsafeBuildings builings: tabella building damage somma totale colonne nd3
-                //Calcolo economic cost: select su di una procedura
-                //calcolo nomeroMorti: casualties somma colonna deads
-                //calcolo senza casa: casualties somma colonna homeless
-                //calcolo injuried: casualties somma colonna injuried
+                //TODO: Waiting for procedures to complete the code that calculates the indicators
+                Indicators indicators = IndicatorCalculator.calculateIndicators(worldStateName, connection);
                 //*WF* Write indicator dataitems to ICMM
-                Indicators indicators = PilotDHelper.getIndicators(noOfEvents, noOfEvents, noOfEvents, depth, depth, targetWorldSateID, longitude, noOfEvents, targetWorldSateID, noOfEvents, targetWorldSateID, noOfEvents);
                 DataItem indicatorsDataItem = PilotDHelper.getIndicatorDataItem(indicators);
 
                 worldstate = PilotDHelper.getWorldstate(worldstate, resultItems,
@@ -296,8 +274,8 @@ public class TDVModel implements GeoServerProcess {
                 i++;
             }
         } catch (Exception e) {
-            logger.warning("TDV Exception: " + e);
-            logger.warning("StackTrace: " + Arrays.toString(e.getStackTrace()));
+            logger.log(Level.SEVERE, "TDV Exception: {0}", e);
+            logger.log(Level.SEVERE, "StackTrace: {0}", Arrays.toString(e.getStackTrace()));
         } finally {
             if (resultSet != null) {
                 resultSet.close();

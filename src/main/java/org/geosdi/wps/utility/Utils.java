@@ -91,7 +91,7 @@ public class Utils {
     public NamespaceInfo getNamespace(WorkspaceInfo crismaWorkspace) {
         NamespaceInfo namespace = catalog.getNamespaceByPrefix(crismaWorkspace.getName());
         if (namespace == null) {
-            logger.info("Automatically creating namespace for workspace " + crismaWorkspace.getName());
+            logger.log(Level.INFO, "Automatically creating namespace for workspace " + crismaWorkspace.getName());
 
             namespace = catalog.getFactory().createNamespace();
             namespace.setPrefix(crismaWorkspace.getName());
@@ -104,9 +104,9 @@ public class Utils {
     public DataStoreInfo getDataStore(WorkspaceInfo crismaWorkspace, String schemaName) {
         DataStoreInfo crismaDatastore = catalog.getDataStoreByName(
                 Utils.CRISMA_WORKSPACE, schemaName);
-        logger.info("crismaDatastore: " + crismaDatastore);
+        logger.log(Level.INFO, "crismaDatastore: " + crismaDatastore);
         if (crismaDatastore == null) {
-            logger.info("Creating datastore");
+            logger.log(Level.INFO, "Creating datastore");
             DataStoreInfoImpl postgis = new DataStoreInfoImpl(this.catalog);
             postgis.setName(schemaName);
             postgis.setType("PostGIS");
@@ -172,24 +172,24 @@ public class Utils {
             featureTypeInfo = null;
         }
 
-        logger.info("FeatureTypeInfo: " + featureTypeInfo);
+        logger.log(Level.INFO, "FeatureTypeInfo: " + featureTypeInfo);
 
         if (featureTypeInfo == null) {
-            logger.info("Creating featureTypeInfo");
+            logger.log(Level.INFO, "Creating featureTypeInfo");
             featureTypeInfo = this.catalog.getFactory().createFeatureType();
 
             featureTypeInfo.setStore(crismaDatastore);
             featureTypeInfo.setNamespace(namespace);
             featureTypeInfo.setName(newFeatureName);
             featureTypeInfo.setNativeName(featureName);
-            logger.info("BUG overriding existing feature type");
+            logger.log(Level.INFO, "BUG overriding existing feature type");
 //            this.catalog.detach(featureTypeInfo);
-            logger.info("FeatureTypeInfo: " + featureTypeInfo);
+            logger.log(Level.INFO, "FeatureTypeInfo: " + featureTypeInfo);
             this.catalog.add(featureTypeInfo);
-            logger.info("AFTER Creating featureTypeInfo");
+            logger.log(Level.INFO, "AFTER Creating featureTypeInfo");
 
             DataAccess gtda = crismaDatastore.getDataStore(null);
-            logger.info("crismaDatastore.getDataStore(null): " + crismaDatastore.getDataStore(null));
+            logger.log(Level.INFO, "crismaDatastore.getDataStore(null): " + crismaDatastore.getDataStore(null));
             if (gtda instanceof DataStore) {
                 String typeName = featureTypeInfo.getName();
                 if (featureTypeInfo.getNativeName() != null) {
@@ -262,8 +262,8 @@ public class Utils {
                 catalog.add(featureTypeInfo);
 
                 LayerInfo layerInfo = new CatalogBuilder(catalog).buildLayer(featureTypeInfo);
-                logger.info("Layer Info result: " + layerInfo.toString());
-                logger.info("Resource Info result: " + layerInfo.getResource());
+                logger.log(Level.INFO, "Layer Info result: " + layerInfo.toString());
+                logger.log(Level.INFO, "Resource Info result: " + layerInfo.getResource());
 
                 layerInfo.setName(newFeatureName);
                 //create a layer for the feature type
@@ -275,7 +275,7 @@ public class Utils {
                 catalog.add(layerInfo);
             }
         }
-        logger.info("Published feature with name: " + featureTypeInfo.getName());
+        logger.log(Level.INFO, "Published feature with name: " + featureTypeInfo.getName());
         return featureTypeInfo;
     }
 
