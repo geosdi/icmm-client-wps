@@ -77,10 +77,44 @@ public class IndicatorCalculator {
             while (resultSet.next()) {
                 noOfInjured = resultSet.getLong(1);
             }
-            //TODO: Calculate economic cost from DB procedures
-            Long directDamageCost = 0L;
+
+            //Calling the procedure to calculate the economic costs
+            stringBuilder = new StringBuilder("SELECT aquila.v2_ec_tot_eq_cost(");
+            stringBuilder.append(worldStateName).append(")");
+            resultSet = statement.executeQuery(stringBuilder.toString());
+
+            //select sum(value) FROM ws_1.ec_tot where cost='VA PSYCO EFFECT' OR cost='VA EVACUATION' OR cost='DEAD';
+            stringBuilder = new StringBuilder("SELECT sum(value) FROM ");
+            stringBuilder.append(worldStateName).append(".ec_tot where cost='VA PSYCO EFFECT' OR cost='VA EVACUATION' OR cost='DEAD'");
+            resultSet = statement.executeQuery(stringBuilder.toString());
             Long indirectDamageCost = 0L;
+            while (resultSet.next()) {
+                indirectDamageCost = resultSet.getLong(1);
+            }
+
+            //select sum(value) FROM ws_1.ec_tot where cost='EVACUATION POST-EQ' 
+            //OR cost='EMERGENCY MANAGEMENT' OR cost='RUMBLE CLEAN UP' OR cost='RECONSTRUCTION'
+            //OR cost='REHABILITATION' OR cost='SANITARY' OR cost='BACK HOME'
+            stringBuilder = new StringBuilder("SELECT sum(value) FROM ");
+            stringBuilder.append(worldStateName).append(".ec_tot where "
+                    + "cost='EVACUATION POST-EQ' OR cost='EMERGENCY MANAGEMENT' "
+                    + "OR cost='RUMBLE CLEAN UP' OR cost='RECONSTRUCTION'"
+                    + "OR cost='REHABILITATION' OR cost='SANITARY' OR cost='BACK HOME'");
+            resultSet = statement.executeQuery(stringBuilder.toString());
+            Long directDamageCost = 0L;
+            while (resultSet.next()) {
+                directDamageCost = resultSet.getLong(1);
+            }
+
+            stringBuilder = new StringBuilder("SELECT value FROM ");
+            stringBuilder.append(worldStateName).append(".ec_tot where cost='RECONSTRUCTION'");
+            resultSet = statement.executeQuery(stringBuilder.toString());
             Long directRestorationCost = 0L;
+            while (resultSet.next()) {
+                directRestorationCost = resultSet.getLong(1);
+            }
+
+            //TODO: Calculate economic cost from DB procedures
             Long preemtiveEvacuationCost = 0L;
             Long noOfEvacuated = 0L;
             Long totalRetrofittingCost = 0L;
