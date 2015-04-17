@@ -198,6 +198,7 @@ public class Utils {
                 boolean typeExists = false;
                 DataStore gtds = (DataStore) gtda;
                 for (String name : gtds.getTypeNames()) {
+                    logger.log(Level.FINEST, "@@@@@@@@@@@@@@@@@@ Type Names: " + name);
                     if (name.equals(typeName)) {
                         typeExists = true;
                         break;

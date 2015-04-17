@@ -79,8 +79,8 @@ public class IndicatorCalculator {
             }
 
             //Calling the procedure to calculate the economic costs
-            stringBuilder = new StringBuilder("SELECT aquila.v2_ec_tot_eq_cost(");
-            stringBuilder.append(worldStateName).append(")");
+            stringBuilder = new StringBuilder("SELECT aquila.v2_ec_tot_eq_cost('");
+            stringBuilder.append(worldStateName).append("')");
             resultSet = statement.executeQuery(stringBuilder.toString());
 
             //select sum(value) FROM ws_1.ec_tot where cost='VA PSYCO EFFECT' OR cost='VA EVACUATION' OR cost='DEAD';
@@ -106,6 +106,7 @@ public class IndicatorCalculator {
                 directDamageCost = resultSet.getLong(1);
             }
 
+            //select sum(value) FROM ws_1.ec_tot where cost='RECONSTRUCTION' 
             stringBuilder = new StringBuilder("SELECT value FROM ");
             stringBuilder.append(worldStateName).append(".ec_tot where cost='RECONSTRUCTION'");
             resultSet = statement.executeQuery(stringBuilder.toString());

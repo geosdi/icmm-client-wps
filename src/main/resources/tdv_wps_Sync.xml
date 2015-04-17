@@ -63,7 +63,7 @@
     </wps:DataInputs>
     <wps:ResponseForm>
         <wps:RawDataOutput>
-            <ows:Identifier>intens grid</ows:Identifier>
+            <ows:Identifier>string</ows:Identifier>
         </wps:RawDataOutput>
     </wps:ResponseForm>
 </wps:Execute>

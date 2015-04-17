@@ -183,21 +183,24 @@ public class TDVModel implements GeoServerProcess {
                 resultItems.add(dataItem);
 
                 featureTypeInfo = this.utils.getOrPublishFeatureType(
-                        crismaWorkspace, crismaDatastore, namespace, "builing_damage_varmin");
+                        crismaWorkspace, crismaDatastore, namespace,
+                        "building_damage_varmin", "polygon");
                 //
                 dataItem = this.utils.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage Var Min", Categories.BUILDING_DAMAGE_MIN);
                 resultItems.add(dataItem);
 
                 featureTypeInfo = this.utils.getOrPublishFeatureType(
-                        crismaWorkspace, crismaDatastore, namespace, "builing_damage");
+                        crismaWorkspace, crismaDatastore, namespace,
+                        "building_damage", "polygon");
                 //
                 dataItem = this.utils.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage AVG", Categories.BUILDING_DAMAGE_AVG);
                 resultItems.add(dataItem);
 
                 featureTypeInfo = this.utils.getOrPublishFeatureType(
-                        crismaWorkspace, crismaDatastore, namespace, "builing_damage_varmax");
+                        crismaWorkspace, crismaDatastore, namespace,
+                        "building_damage_varmax", "polygon");
                 //
                 dataItem = this.utils.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage Var Max", Categories.BUILDING_DAMAGE_MAX);
@@ -226,15 +229,14 @@ public class TDVModel implements GeoServerProcess {
                 stringBuilder = new StringBuilder("select aquila.v2_casualties('");
                 stringBuilder.
                         append(worldStateName).
-                        append("',").
-                        append(i).
-                        append(")");
+                        append("')");
                 resultSet = statement.executeQuery(stringBuilder.toString());
 
                 //*WF* Publish people impact (min/max/avg) on WMS
                 //*WF* Write people impact (min/max/avg) dataitems to ICMM
                 FeatureTypeInfo casualitiesFeatures = this.utils.getOrPublishFeatureType(
-                        crismaWorkspace, crismaDatastore, namespace, "casualities");
+                        crismaWorkspace, crismaDatastore, namespace, "casualties",
+                        "polygon");
 
                 String peopleImpactAVGName = casualitiesFeatures.getName();
                 DataItem peopleImpactDataItem = this.utils.writeWMSDataItem(
@@ -242,14 +244,16 @@ public class TDVModel implements GeoServerProcess {
                 resultItems.add(peopleImpactDataItem);
 
                 casualitiesFeatures = this.utils.getOrPublishFeatureType(
-                        crismaWorkspace, crismaDatastore, namespace, "casualities_varmin");
+                        crismaWorkspace, crismaDatastore, namespace,
+                        "casualties_varmin", "polygon");
                 String peopleImpactMinName = casualitiesFeatures.getName();;
                 peopleImpactDataItem = this.utils.writeWMSDataItem(
                         peopleImpactMinName, "PEOPLE IMPACT MIN", Categories.PEOPLE_IMPACT_MIN);
                 resultItems.add(peopleImpactDataItem);
 
                 casualitiesFeatures = this.utils.getOrPublishFeatureType(
-                        crismaWorkspace, crismaDatastore, namespace, "casualities_varmax");
+                        crismaWorkspace, crismaDatastore, namespace,
+                        "casualties_varmax", "polygon");
                 String peopleImpactMaxName = casualitiesFeatures.getName();
                 peopleImpactDataItem = this.utils.writeWMSDataItem(
                         peopleImpactMaxName, "PEOPLE IMPACT MAX", Categories.PEOPLE_IMPACT_MAX);
@@ -263,6 +267,7 @@ public class TDVModel implements GeoServerProcess {
 
                 //TODO: Waiting for procedures to complete the code that calculates the indicators
                 Indicators indicators = IndicatorCalculator.calculateIndicators(worldStateName, connection);
+                logger.log(Level.INFO, "Calculated indicators: {0}", indicators);
                 //*WF* Write indicator dataitems to ICMM
                 DataItem indicatorsDataItem = PilotDHelper.getIndicatorDataItem(indicators);
 

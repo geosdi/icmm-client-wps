@@ -64,7 +64,7 @@
     <wps:ResponseForm>
         <wps:ResponseDocument storeExecuteResponse="true">
             <wps:Output asReference="true">
-                <ows:Identifier>intens grid</ows:Identifier>
+                <ows:Identifier>string</ows:Identifier>
             </wps:Output>
         </wps:ResponseDocument>
     </wps:ResponseForm>
