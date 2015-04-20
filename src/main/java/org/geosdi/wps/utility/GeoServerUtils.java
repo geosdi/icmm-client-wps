@@ -10,6 +10,7 @@ import eu.crismaproject.icmm.icmmhelper.ICMMHelper;
 import eu.crismaproject.icmm.icmmhelper.entity.DataItem;
 import eu.crismaproject.icmm.icmmhelper.entity.Transition;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Categories;
+import eu.crismaproject.icmm.icmmhelper.pilotD.Indicators;
 import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
 import java.io.Serializable;
 import java.sql.Connection;
@@ -47,7 +48,7 @@ import org.springframework.stereotype.Component;
  * @email nazzareno.sileno@geosdi.org
  */
 @Component
-public class Utils {
+public class GeoServerUtils {
 
     public final static String CRISMA_WORKSPACE = "crisma";
 //    public final static String CRISMA_DATASTORE = "hazard";
@@ -56,33 +57,17 @@ public class Utils {
 
     private Properties properties;
 
-    private final ICMMClient client;
     private final Catalog catalog;
 
-    public Utils(Catalog catalog, String icmm_url) {
+    public GeoServerUtils(Catalog catalog) {
         this.catalog = catalog;
-        this.client = new ICMMClient(icmm_url);
-    }
-
-    public Transition initProcessTransition(String transitionName,
-            String transitionDescription, int processStepsNumber) {
-        Transition transition = ICMMHelper.createTransition(transitionName,
-                transitionDescription);
-        //Remember to initialize transaction Self Ref ID
-        client.insertSelfRefAndId(transition);
-        client.putTransition(transition);
-        //Remember to push the result on client side
-        ICMMHelper.updateTransition(transition, Transition.Status.RUNNING, 1,
-                processStepsNumber, "Starting process " + transitionName);
-        client.putTransition(transition);
-        return transition;
     }
 
     public WorkspaceInfo getWorkspace() {
-        WorkspaceInfo workspaceInfo = catalog.getWorkspaceByName(Utils.CRISMA_WORKSPACE);
+        WorkspaceInfo workspaceInfo = catalog.getWorkspaceByName(GeoServerUtils.CRISMA_WORKSPACE);
         if (workspaceInfo == null) {
             workspaceInfo = catalog.getFactory().createWorkspace();
-            workspaceInfo.setName(Utils.CRISMA_WORKSPACE);
+            workspaceInfo.setName(GeoServerUtils.CRISMA_WORKSPACE);
             catalog.add(workspaceInfo);
         }
         return workspaceInfo;
@@ -102,8 +87,7 @@ public class Utils {
     }
 
     public DataStoreInfo getDataStore(WorkspaceInfo crismaWorkspace, String schemaName) {
-        DataStoreInfo crismaDatastore = catalog.getDataStoreByName(
-                Utils.CRISMA_WORKSPACE, schemaName);
+        DataStoreInfo crismaDatastore = catalog.getDataStoreByName(GeoServerUtils.CRISMA_WORKSPACE, schemaName);
         logger.log(Level.INFO, "crismaDatastore: " + crismaDatastore);
         if (crismaDatastore == null) {
             logger.log(Level.INFO, "Creating datastore");
@@ -122,7 +106,7 @@ public class Utils {
             params.put("dbtype", "postgis");
             params.put("Loose bbox", "true");
             params.put("Estimated extends", "true");
-            params.put("namespace", "http://" + Utils.CRISMA_WORKSPACE);
+            params.put("namespace", "http://" + GeoServerUtils.CRISMA_WORKSPACE);
             postgis.setConnectionParameters(params);
             crismaDatastore = postgis;
             catalog.add(crismaDatastore);
@@ -254,7 +238,7 @@ public class Utils {
 
                 if (ns == null) {
                     //infer from workspace
-                    ns = catalog.getNamespaceByPrefix(Utils.CRISMA_WORKSPACE);
+                    ns = catalog.getNamespaceByPrefix(GeoServerUtils.CRISMA_WORKSPACE);
                     featureTypeInfo.setNamespace(ns);
                 }
 
@@ -278,29 +262,6 @@ public class Utils {
         }
         logger.log(Level.INFO, "Published feature with name: " + featureTypeInfo.getName());
         return featureTypeInfo;
-    }
-
-    public DataItem writeTargetSchemaDataItem(String worldStateName) {
-        final DataItem schemaItem = PilotDHelper.getSchemaItem(worldStateName);
-        this.client.insertSelfRefAndId(schemaItem);
-        this.client.putEntity(schemaItem);
-        return schemaItem;
-    }
-
-    public DataItem writeWMSDataItem(String layerName, String displayName,
-            Categories category) {
-        final DataItem wmsDataItem = PilotDHelper.getWmsDataItem(
-                layerName, displayName, category);
-        this.client.insertSelfRefAndId(wmsDataItem);
-        this.client.putEntity(wmsDataItem);
-        return wmsDataItem;
-    }
-
-    public void updateTransition(String message, Transition transition, int runningPhase,
-            int processStepsNumber, Transition.Status status) {
-        ICMMHelper.updateTransition(transition, status, runningPhase,
-                processStepsNumber, message);
-        client.putTransition(transition);
     }
 
     public Connection connectToDatabaseOrDie() {
@@ -356,20 +317,12 @@ public class Utils {
         return builder.buildFeatureType();
     }
 
-    public String generateWorldStateName(int wsId) {
-        return "ws_" + wsId;
-    }
-
     public Properties getProperties() {
         return properties;
     }
 
     public void setProperties(Properties properties) {
         this.properties = properties;
-    }
-
-    public ICMMClient getClient() {
-        return client;
     }
 
 }

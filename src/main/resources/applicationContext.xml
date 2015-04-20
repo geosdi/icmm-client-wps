@@ -16,9 +16,12 @@
     
     <util:properties id="paramsProperties" location="classpath:params.properties" />  
         
-    <bean id="utils" class="org.geosdi.wps.utility.Utils">
+    <bean id="icmmHelperFacade" class="org.geosdi.wps.utility.ICMMHelperFacade">
+        <constructor-arg index="0" value="#{paramsProperties['icmm-url']}"/>
+    </bean>
+    
+    <bean id="geoServerUtils" class="org.geosdi.wps.utility.GeoServerUtils">
         <constructor-arg index="0" ref="catalog"/>
-        <constructor-arg index="1" value="#{paramsProperties['icmm-url']}"/>
         <property name="properties">
             <props>
                 <prop key="db.port">#{paramsProperties['db.port']}</prop>
@@ -32,10 +35,12 @@
     </bean>
     
     <bean id="hazardModel" class="org.geosdi.wps.HazardModel">
-        <constructor-arg index="0" ref="utils"/>
+        <constructor-arg index="0" ref="geoServerUtils"/>
+        <constructor-arg index="1" ref="icmmHelperFacade"/>
     </bean>
 
     <bean id="tdvModel" class="org.geosdi.wps.TDVModel">
-        <constructor-arg index="0" ref="utils"/>
+        <constructor-arg index="0" ref="geoServerUtils"/>
+        <constructor-arg index="1" ref="icmmHelperFacade"/>
     </bean>
 </beans>

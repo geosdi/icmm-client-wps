@@ -20,7 +20,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jersey.repackaged.com.google.common.collect.Lists;
 import org.geosdi.wps.utility.IndicatorCalculator;
-import org.geosdi.wps.utility.Utils;
+import org.geosdi.wps.utility.GeoServerUtils;
+import org.geosdi.wps.utility.ICMMHelperFacade;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.NamespaceInfo;
@@ -50,10 +51,12 @@ public class TDVModel implements GeoServerProcess {
 
     private int PROCESS_PHASES = 2;
 
-    private Utils utils;
+    private GeoServerUtils geoServerUtils;
+    private ICMMHelperFacade icmmHelperFacade;
 
-    public TDVModel(Utils utils) {
-        this.utils = utils;
+    public TDVModel(GeoServerUtils utils, ICMMHelperFacade icmmHelperFacade) {
+        this.geoServerUtils = utils;
+        this.icmmHelperFacade = icmmHelperFacade;
     }
 
     @DescribeResult(name = "intens grid", description = "WFS link for intensity distribution map")
@@ -73,21 +76,21 @@ public class TDVModel implements GeoServerProcess {
         this.PROCESS_PHASES += noOfEvents * 5;
 
         //*WF* Generating transition object && write transition object to ICMM
-        Transition transition = this.utils.initProcessTransition(
+        Transition transition = this.icmmHelperFacade.initProcessTransition(
                 "Time Dependent Vulnerability Elaboration",
                 "WPS TDV Elaboration", this.PROCESS_PHASES);
 
         //Init basic elements to publish layers
-        WorkspaceInfo crismaWorkspace = this.utils.getWorkspace();
+        WorkspaceInfo crismaWorkspace = this.geoServerUtils.getWorkspace();
         //create a namespace corresponding to the workspace if one does not 
         // already exist
-        NamespaceInfo namespace = this.utils.getNamespace(crismaWorkspace);
+        NamespaceInfo namespace = this.geoServerUtils.getNamespace(crismaWorkspace);
 
         Connection connection = null;
         Statement statement = null;
         ResultSet resultSet = null;
         try {
-            connection = this.utils.connectToDatabaseOrDie();
+            connection = this.geoServerUtils.connectToDatabaseOrDie();
             statement = connection.createStatement();
             int targetWorldSateID = wsId;
 
@@ -97,7 +100,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Fetch origin worldstate (WS) from ICMM
                 //I'm asking for the existent WS having id 1 
                 //waiting for the world state generation
-                Worldstate worldstate = this.utils.getClient().getWorldstate(1, 3, true);
+                Worldstate worldstate = this.icmmHelperFacade.getClient().getWorldstate(1, 3, true);
                 //*WF* Extract origin schema from WS
                 String originSchema = PilotDHelper.getSchema(worldstate);
                 logger.log(Level.INFO, "Origin Schema: " + originSchema);
@@ -105,12 +108,12 @@ public class TDVModel implements GeoServerProcess {
 
                 //*WF* Update CCIM transition object: Preparing workspace for round #
                 //&& Write transition object to ICMM
-                this.utils.updateTransition("Preparing workspace",
+                this.icmmHelperFacade.updateTransition("Preparing workspace",
                         transition, i + 1, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 SimpleFeature eqTDVPar = iterator.next();
                 final List<DataItem> resultItems = Lists.<DataItem>newArrayList();
-                String worldStateName = this.utils.generateWorldStateName(targetWorldSateID);
+                String worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldSateID);
                 //Executing World State copy
                 resultSet = statement.executeQuery("select aquila.ccr_ws_mk('" + worldStateName + "', 2)");
                 logger.log(Level.FINEST, "Creating World State copy, result metadata column count: "
@@ -118,20 +121,20 @@ public class TDVModel implements GeoServerProcess {
                 while (resultSet.next()) {
                     targetWorldSateID = resultSet.getInt(1);
                 }
-                worldStateName = this.utils.generateWorldStateName(targetWorldSateID);
+                worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldSateID);
                 logger.log(Level.INFO, "Result for world state copy operation: " + targetWorldSateID);
 //                Thread.sleep(30000);
                 //*WF* Write target schema dataItem to ICMM
-                DataItem schemaItem = this.utils.writeTargetSchemaDataItem(worldStateName);
+                DataItem schemaItem = this.icmmHelperFacade.writeTargetSchemaDataItem(worldStateName);
                 resultItems.add(schemaItem);
 
                 //*WF* Update CCIM transition object: Running build damage model round round #
                 //&& Write transition object to ICMM
-                this.utils.updateTransition("Running build damage model round: " + i,
+                this.icmmHelperFacade.updateTransition("Running build damage model round: " + i,
                         transition, i + 2, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 // execute building damage
-                DataStoreInfo crismaDatastore = this.utils.getDataStore(crismaWorkspace, worldStateName);
+                DataStoreInfo crismaDatastore = this.geoServerUtils.getDataStore(crismaWorkspace, worldStateName);
 
                 /*
                  aquila.v2_building_damage(sch_name text, nstep integer, shakemap boolean, 
@@ -172,43 +175,43 @@ public class TDVModel implements GeoServerProcess {
                     logger.log(Level.INFO, resultSet.getString(1));
                 }
                 //*WF* Publishing intensity grid, building damage (min/max/avg) on WMS
-                FeatureTypeInfo featureTypeInfo = this.utils.getOrPublishFeatureType(
+                FeatureTypeInfo featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace, "intens_grid",
                         "crisma:intens_grid");
 
                 //*WF* Write intensity grid, building damage (min/max/avg) dataitems to ICMM
                 String intensGridName = featureTypeInfo.getName();
-                DataItem dataItem = this.utils.writeWMSDataItem(
+                DataItem dataItem = this.icmmHelperFacade.writeWMSDataItem(
                         intensGridName, "Intensity Grid", Categories.INTENSITY_GRID);
                 resultItems.add(dataItem);
 
-                featureTypeInfo = this.utils.getOrPublishFeatureType(
+                featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
                         "building_damage_varmin", "polygon");
                 //
-                dataItem = this.utils.writeWMSDataItem(
+                dataItem = this.icmmHelperFacade.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage Var Min", Categories.BUILDING_DAMAGE_MIN);
                 resultItems.add(dataItem);
 
-                featureTypeInfo = this.utils.getOrPublishFeatureType(
+                featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
                         "building_damage", "polygon");
                 //
-                dataItem = this.utils.writeWMSDataItem(
+                dataItem = this.icmmHelperFacade.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage AVG", Categories.BUILDING_DAMAGE_AVG);
                 resultItems.add(dataItem);
 
-                featureTypeInfo = this.utils.getOrPublishFeatureType(
+                featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
                         "building_damage_varmax", "polygon");
                 //
-                dataItem = this.utils.writeWMSDataItem(
+                dataItem = this.icmmHelperFacade.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage Var Max", Categories.BUILDING_DAMAGE_MAX);
                 resultItems.add(dataItem);
 //Example WMS link: http://192.168.1.30:8080/geoserver/wms?request=GetMap&service=WMS&version=1.1.1&layers=crisma:intens_grid&format=image%2Fpng&bbox=345220.145083,4670346.1361,391220.145083,4716846.1361&width=506&height=512&srs=EPSG:32633
                 //*WF* Update CCIM transition object: Running building inventory update round #
                 //&& Write transition object to ICMM
-                this.utils.updateTransition("Running building inventory update for round: " + i,
+                this.icmmHelperFacade.updateTransition("Running building inventory update for round: " + i,
                         transition, i + 3, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //Waiting for Stefano procedure
@@ -216,65 +219,69 @@ public class TDVModel implements GeoServerProcess {
                 //TODO: Publish building inventory on WMS
                 //*WF* Write building inventory dataitems to ICMM
                 String buildingInventoryName = "";
-                DataItem buildingInventoryItem = this.utils.writeWMSDataItem(
+                DataItem buildingInventoryItem = this.icmmHelperFacade.writeWMSDataItem(
                         buildingInventoryName, "Building Inventory", Categories.BUILDING_INVENTORY);
                 resultItems.add(buildingInventoryItem);
 
                 //*WF* Update CCIM transition object: Running people impact for round #
                 //&& Write transition object to ICMM
-                this.utils.updateTransition("Running people impact for round: " + i,
+                this.icmmHelperFacade.updateTransition("Running people impact for round: " + i,
                         transition, i + 4, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //*WF* Execute people impact procedure
                 stringBuilder = new StringBuilder("select aquila.v2_casualties('");
                 stringBuilder.
                         append(worldStateName).
-                        append("')");
+                        append("',").
+                        append(i).
+                        append(")");
                 resultSet = statement.executeQuery(stringBuilder.toString());
 
                 //*WF* Publish people impact (min/max/avg) on WMS
                 //*WF* Write people impact (min/max/avg) dataitems to ICMM
-                FeatureTypeInfo casualitiesFeatures = this.utils.getOrPublishFeatureType(
+                FeatureTypeInfo casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace, "casualties",
                         "polygon");
 
                 String peopleImpactAVGName = casualitiesFeatures.getName();
-                DataItem peopleImpactDataItem = this.utils.writeWMSDataItem(
+                DataItem peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
                         peopleImpactAVGName, "PEOPLE IMPACT AVG", Categories.PEOPLE_IMPACT_AVG);
                 resultItems.add(peopleImpactDataItem);
 
-                casualitiesFeatures = this.utils.getOrPublishFeatureType(
+                casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
                         "casualties_varmin", "polygon");
                 String peopleImpactMinName = casualitiesFeatures.getName();;
-                peopleImpactDataItem = this.utils.writeWMSDataItem(
+                peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
                         peopleImpactMinName, "PEOPLE IMPACT MIN", Categories.PEOPLE_IMPACT_MIN);
                 resultItems.add(peopleImpactDataItem);
 
-                casualitiesFeatures = this.utils.getOrPublishFeatureType(
+                casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
                         "casualties_varmax", "polygon");
                 String peopleImpactMaxName = casualitiesFeatures.getName();
-                peopleImpactDataItem = this.utils.writeWMSDataItem(
+                peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
                         peopleImpactMaxName, "PEOPLE IMPACT MAX", Categories.PEOPLE_IMPACT_MAX);
                 resultItems.add(peopleImpactDataItem);
 //
 
                 //*WF* Update CCIM transition object: Calculating indicators for round #
                 //&& Write transition object to ICMM
-                this.utils.updateTransition("Calculating indicators for round: " + i,
+                this.icmmHelperFacade.updateTransition("Calculating indicators for round: " + i,
                         transition, i + 5, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //TODO: Waiting for procedures to complete the code that calculates the indicators
                 Indicators indicators = IndicatorCalculator.calculateIndicators(worldStateName, connection);
                 logger.log(Level.INFO, "Calculated indicators: {0}", indicators);
                 //*WF* Write indicator dataitems to ICMM
-                DataItem indicatorsDataItem = PilotDHelper.getIndicatorDataItem(indicators);
+                DataItem indicatorsDataItem = this.icmmHelperFacade.writeIndicatorsDataItem(indicators);
 
                 worldstate = PilotDHelper.getWorldstate(worldstate, resultItems,
                         indicatorsDataItem, transition, worldStateName, worldStateName);
+                this.icmmHelperFacade.getClient().insertSelfRefAndId(worldstate);
+                logger.finest("WORLD STATE: " + worldstate);
                 //*WF* Write new World State to ICMM
-                this.utils.getClient().putWorldstate(worldstate);
+                this.icmmHelperFacade.getClient().putWorldstate(worldstate);
 
                 i++;
             }
@@ -295,7 +302,7 @@ public class TDVModel implements GeoServerProcess {
 
         //*WF* Update CCIM transition object: Status finished
         //&& Write transition object to ICMM
-        this.utils.updateTransition("Process Executed", transition, PROCESS_PHASES,
+        this.icmmHelperFacade.updateTransition("Process Executed", transition, PROCESS_PHASES,
                 PROCESS_PHASES, Transition.Status.FINISHED);
         return "Process Executed correctly";
     }

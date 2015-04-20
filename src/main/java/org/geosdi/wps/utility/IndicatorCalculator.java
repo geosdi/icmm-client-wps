@@ -33,9 +33,9 @@ public class IndicatorCalculator {
             StringBuilder stringBuilder = new StringBuilder("SELECT sum(nd4 + nd5) FROM ");
             stringBuilder.append(worldStateName).append(".building_damage");
             resultSet = statement.executeQuery(stringBuilder.toString());
-            Long lostBuildings = 0L;
+            Integer lostBuildings = 0;
             while (resultSet.next()) {
-                lostBuildings = resultSet.getLong(1);
+                lostBuildings = Math.round(resultSet.getFloat(1));
             }
 
             //Unsafe Buildings formula: from table building damage sum the total from columns ((0.5 * nd3) + nd4 + nd5)
@@ -43,9 +43,9 @@ public class IndicatorCalculator {
             stringBuilder = new StringBuilder("SELECT sum((0.5 * nd3) + nd4 + nd5) FROM ");
             stringBuilder.append(worldStateName).append(".building_damage");
             resultSet = statement.executeQuery(stringBuilder.toString());
-            Long unsafeBuildings = 0L;
+            Integer unsafeBuildings = 0;
             while (resultSet.next()) {
-                unsafeBuildings = resultSet.getLong(1);
+                unsafeBuildings = Math.round(resultSet.getFloat(1));
             }
 
             //No Of Dead formula: from table casualties sum each row from column deads
@@ -53,9 +53,9 @@ public class IndicatorCalculator {
             stringBuilder = new StringBuilder("SELECT sum(deads) FROM ");
             stringBuilder.append(worldStateName).append(".casualties");
             resultSet = statement.executeQuery(stringBuilder.toString());
-            Long noOfDead = 0L;
+            Integer noOfDead = 0;
             while (resultSet.next()) {
-                noOfDead = resultSet.getLong(1);
+                noOfDead = Math.round(resultSet.getFloat(1));
             }
 
             //No Of Homeless formula: from table casualties sum each row from column homeless
@@ -63,9 +63,9 @@ public class IndicatorCalculator {
             stringBuilder = new StringBuilder("SELECT sum(homeless) FROM ");
             stringBuilder.append(worldStateName).append(".casualties");
             resultSet = statement.executeQuery(stringBuilder.toString());
-            Long noOfHomeless = 0L;
+            Integer noOfHomeless = 0;
             while (resultSet.next()) {
-                noOfHomeless = resultSet.getLong(1);
+                noOfHomeless = Math.round(resultSet.getFloat(1));
             }
 
             //No Of Injuried formula: from table casualties sum each row from column injuried
@@ -73,9 +73,9 @@ public class IndicatorCalculator {
             stringBuilder = new StringBuilder("SELECT sum(injuried) FROM ");
             stringBuilder.append(worldStateName).append(".casualties");
             resultSet = statement.executeQuery(stringBuilder.toString());
-            Long noOfInjured = 0L;
+            Integer noOfInjured = 0;
             while (resultSet.next()) {
-                noOfInjured = resultSet.getLong(1);
+                noOfInjured = Math.round(resultSet.getFloat(1));
             }
 
             //Calling the procedure to calculate the economic costs
@@ -87,9 +87,9 @@ public class IndicatorCalculator {
             stringBuilder = new StringBuilder("SELECT sum(value) FROM ");
             stringBuilder.append(worldStateName).append(".ec_tot where cost='VA PSYCO EFFECT' OR cost='VA EVACUATION' OR cost='DEAD'");
             resultSet = statement.executeQuery(stringBuilder.toString());
-            Long indirectDamageCost = 0L;
+            Integer indirectDamageCost = 0;
             while (resultSet.next()) {
-                indirectDamageCost = resultSet.getLong(1);
+                indirectDamageCost = Math.round(resultSet.getFloat(1));
             }
 
             //select sum(value) FROM ws_1.ec_tot where cost='EVACUATION POST-EQ' 
@@ -101,29 +101,30 @@ public class IndicatorCalculator {
                     + "OR cost='RUMBLE CLEAN UP' OR cost='RECONSTRUCTION'"
                     + "OR cost='REHABILITATION' OR cost='SANITARY' OR cost='BACK HOME'");
             resultSet = statement.executeQuery(stringBuilder.toString());
-            Long directDamageCost = 0L;
+            Integer directDamageCost = 0;
             while (resultSet.next()) {
-                directDamageCost = resultSet.getLong(1);
+                directDamageCost = Math.round(resultSet.getFloat(1));
             }
 
             //select sum(value) FROM ws_1.ec_tot where cost='RECONSTRUCTION' 
             stringBuilder = new StringBuilder("SELECT value FROM ");
             stringBuilder.append(worldStateName).append(".ec_tot where cost='RECONSTRUCTION'");
             resultSet = statement.executeQuery(stringBuilder.toString());
-            Long directRestorationCost = 0L;
+            Integer directRestorationCost = 0;
             while (resultSet.next()) {
-                directRestorationCost = resultSet.getLong(1);
+                directRestorationCost = Math.round(resultSet.getFloat(1));
             }
 
             //TODO: Calculate economic cost from DB procedures
-            Long preemtiveEvacuationCost = 0L;
-            Long noOfEvacuated = 0L;
-            Long totalRetrofittingCost = 0L;
-            Long noOfRetrofittedBuildings = 0L;
+            Integer preemtiveEvacuationCost = 0;
+            Integer noOfEvacuated = 0;
+            Integer totalRetrofittingCost = 0;
+            Integer noOfRetrofittedBuildings = 0;
 
             indicators = PilotDHelper.getIndicators(noOfDead,
-                    noOfInjured, noOfHomeless, directDamageCost,
-                    indirectDamageCost, directRestorationCost, lostBuildings,
+                    noOfInjured, noOfHomeless,
+                    directDamageCost, indirectDamageCost,
+                    directRestorationCost, lostBuildings,
                     unsafeBuildings, preemtiveEvacuationCost, noOfEvacuated,
                     totalRetrofittingCost, noOfRetrofittedBuildings);
         } catch (Exception e) {

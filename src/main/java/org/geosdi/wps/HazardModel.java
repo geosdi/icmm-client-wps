@@ -5,13 +5,14 @@
  */
 package org.geosdi.wps;
 
-import org.geosdi.wps.utility.Utils;
+import org.geosdi.wps.utility.GeoServerUtils;
 import eu.crismaproject.icmm.icmmhelper.entity.Transition;
 import eu.crismaproject.icmm.icmmhelper.entity.Worldstate;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.logging.Logger;
+import org.geosdi.wps.utility.ICMMHelperFacade;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.NamespaceInfo;
@@ -36,10 +37,12 @@ public class HazardModel implements GeoServerProcess {
     private Logger logger = Logger.getLogger("org.geosdi.wps");
     private final int PROCESS_PHASES = 3;
 
-    private Utils utils;
+    private GeoServerUtils geoServerUtils;
+    private ICMMHelperFacade icmmHelperFacade;
 
-    public HazardModel(Utils utils) {
-        this.utils = utils;
+    public HazardModel(GeoServerUtils utils, ICMMHelperFacade icmmHelperFacade) {
+        this.geoServerUtils = utils;
+        this.icmmHelperFacade = icmmHelperFacade;
     }
 
     @DescribeResult(name = "intens grid", description = "WFS link for intensity distribution map")
@@ -55,7 +58,7 @@ public class HazardModel implements GeoServerProcess {
 
         logger.info("Start WPS Process");
 
-        Transition transition = this.utils.initProcessTransition(
+        Transition transition = this.icmmHelperFacade.initProcessTransition(
                 "Hazard Model Elaboration",
                 "WPS Hazard Model Elaboration", PROCESS_PHASES);
 
@@ -67,7 +70,7 @@ public class HazardModel implements GeoServerProcess {
 //        this.utils.getClient().putWorldstate(worldstate); 
         //Richiedo il ws esistente  con id 1 in attesa di far funzionare 
         //la generazione dei world states
-        Worldstate worldstate = this.utils.getClient().getWorldstate(1, PROCESS_PHASES, true);
+        Worldstate worldstate = this.icmmHelperFacade.getClient().getWorldstate(1, PROCESS_PHASES, true);
 
         logger.info("After world state initialization");
 
@@ -82,7 +85,7 @@ public class HazardModel implements GeoServerProcess {
         //Waiting for API method to save the WS at the END of the operation
         //END ICMM
         logger.info("After ICMM Helper code");
-        Connection conn = this.utils.connectToDatabaseOrDie();
+        Connection conn = this.geoServerUtils.connectToDatabaseOrDie();
         logger.info("Connecting to the DB");
         Statement st = conn.createStatement();
         logger.info("Create statement");
@@ -97,7 +100,7 @@ public class HazardModel implements GeoServerProcess {
 //        ResultSet rs = prepareStatement.executeQuery();
 //        ResultSet rs = st.executeQuery("select aquila.hazard_elaboration(false,'',42.47,13.20,10.0,5.3)");
         //                append("aquila.ccr_ws_mk('ws_0', 2)").
-        String worldStateName = this.utils.generateWorldStateName(wsId);
+        String worldStateName = this.icmmHelperFacade.generateWorldStateName(wsId);
         //TODO: Copiare il world state prima di usarlo
 
         StringBuilder stringBuilder = new StringBuilder("select aquila.v2_hazard_elaboration('");
@@ -123,19 +126,19 @@ public class HazardModel implements GeoServerProcess {
             logger.info("Metadata column count: " + rs.getMetaData().getColumnCount());
             logger.info(rs.getString(1));
         }
-        this.utils.updateTransition("Fetching results", transition,
+        this.icmmHelperFacade.updateTransition("Fetching results", transition,
                 2, PROCESS_PHASES, Transition.Status.RUNNING);
 //        client.getWorldstate(1).
         rs.close();
         st.close();
 
-        WorkspaceInfo crismaWorkspace = this.utils.getWorkspace();
+        WorkspaceInfo crismaWorkspace = this.geoServerUtils.getWorkspace();
         //create a namespace corresponding to the workspace if one does not 
         // already exist
-        NamespaceInfo namespace = this.utils.getNamespace(crismaWorkspace);
-        DataStoreInfo crismaDatastore = this.utils.getDataStore(crismaWorkspace, worldStateName);
+        NamespaceInfo namespace = this.geoServerUtils.getNamespace(crismaWorkspace);
+        DataStoreInfo crismaDatastore = this.geoServerUtils.getDataStore(crismaWorkspace, worldStateName);
 
-        FeatureTypeInfo featureTypeInfo = this.utils.getOrPublishFeatureType(
+        FeatureTypeInfo featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                 crismaWorkspace, crismaDatastore, namespace, worldStateName);
 //        LayerInfo l = catalog.getFactory().createLayer();
 //        // l.setName("foo");
@@ -145,7 +148,7 @@ public class HazardModel implements GeoServerProcess {
 //        l.setDefaultStyle(s);
 //        catalog.add(l);
 
-        this.utils.updateTransition("Process Executed", transition, PROCESS_PHASES,
+        this.icmmHelperFacade.updateTransition("Process Executed", transition, PROCESS_PHASES,
                 PROCESS_PHASES, Transition.Status.FINISHED);
 
         //Example WMS link: http://192.168.1.30:8080/geoserver/wms?request=GetMap&service=WMS&version=1.1.1&layers=crisma:intens_grid&format=image%2Fpng&bbox=345220.145083,4670346.1361,391220.145083,4716846.1361&width=506&height=512&srs=EPSG:32633
