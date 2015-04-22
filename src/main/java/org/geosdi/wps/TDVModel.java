@@ -289,7 +289,7 @@ public class TDVModel implements GeoServerProcess {
             logger.log(Level.SEVERE, "TDV Exception: {0}", e);
             logger.log(Level.SEVERE, "StackTrace: {0}", Arrays.toString(e.getStackTrace()));
             this.icmmHelperFacade.updateTransition("Exception: " + e, transition, PROCESS_PHASES,
-                PROCESS_PHASES, Transition.Status.ERROR);
+                    PROCESS_PHASES, Transition.Status.ERROR);
         } finally {
             if (resultSet != null) {
                 resultSet.close();

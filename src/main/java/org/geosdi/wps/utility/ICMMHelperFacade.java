@@ -12,6 +12,7 @@ import eu.crismaproject.icmm.icmmhelper.entity.Transition;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Categories;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Indicators;
 import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -23,9 +24,21 @@ public class ICMMHelperFacade {
     private Logger logger = Logger.getLogger("org.geosdi.wps");
 
     private final ICMMClient client;
+    private final boolean debug;
 
-    public ICMMHelperFacade(String icmm_url) {
+    public ICMMHelperFacade(String icmm_url, boolean debug) {
         this.client = new ICMMClient(icmm_url);
+        this.debug = debug;
+    }
+
+    private void debug() {
+        if (this.debug) {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException ex) {
+                logger.log(Level.SEVERE, "Error sleeping thread: " + ex);
+            }
+        }
     }
 
     public Transition initProcessTransition(String transitionName,
@@ -39,6 +52,7 @@ public class ICMMHelperFacade {
         ICMMHelper.updateTransition(transition, Transition.Status.RUNNING, 1,
                 processStepsNumber, "Starting process " + transitionName);
         client.putTransition(transition);
+        this.debug();
         return transition;
     }
 
@@ -46,6 +60,7 @@ public class ICMMHelperFacade {
         final DataItem schemaItem = PilotDHelper.getSchemaItem(worldStateName);
         this.client.insertSelfRefAndId(schemaItem);
         this.client.putEntity(schemaItem);
+        this.debug();
         return schemaItem;
     }
 
@@ -53,6 +68,7 @@ public class ICMMHelperFacade {
         DataItem indicatorsDataItem = PilotDHelper.getIndicatorDataItem(indicators);
         this.client.insertSelfRefAndId(indicatorsDataItem);
         this.client.putEntity(indicatorsDataItem);
+        this.debug();
         return indicatorsDataItem;
     }
 
@@ -62,6 +78,7 @@ public class ICMMHelperFacade {
                 layerName, displayName, category);
         this.client.insertSelfRefAndId(wmsDataItem);
         this.client.putEntity(wmsDataItem);
+        this.debug();
         return wmsDataItem;
     }
 
@@ -70,6 +87,7 @@ public class ICMMHelperFacade {
         ICMMHelper.updateTransition(transition, status, runningPhase,
                 processStepsNumber, message);
         client.putTransition(transition);
+        this.debug();
     }
 
     public String generateWorldStateName(int wsId) {
