@@ -100,7 +100,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Fetch origin worldstate (WS) from ICMM
                 //I'm asking for the existent WS having id 1 
                 //waiting for the world state generation
-                Worldstate worldstate = this.icmmHelperFacade.getClient().getWorldstate(1, 3, true);
+                Worldstate worldstate = this.icmmHelperFacade.getClient().getWorldstate(targetWorldSateID, 3, true);
                 //*WF* Extract origin schema from WS
                 String originSchema = PilotDHelper.getSchema(worldstate);
                 logger.log(Level.INFO, "Origin Schema: " + originSchema);
