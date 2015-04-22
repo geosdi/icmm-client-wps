@@ -142,10 +142,10 @@ public class TDVModel implements GeoServerProcess {
                  */
                 boolean useShakeMap = (Boolean) eqTDVPar.getAttribute("useShakemap");
                 String shakeMapName = (String) eqTDVPar.getAttribute("ShakeMapName");
-                Double latitude = (Double) eqTDVPar.getAttribute("Latitude");
-                Double longitude = (Double) eqTDVPar.getAttribute("Longitude");
-                Double magnitude = (Double) eqTDVPar.getAttribute("Magnitude");
-                Double depth = (Double) eqTDVPar.getAttribute("Depth");
+                Number latitude = (Number) eqTDVPar.getAttribute("Latitude");
+                Number longitude = (Number) eqTDVPar.getAttribute("Longitude");
+                Number magnitude = (Number) eqTDVPar.getAttribute("Magnitude");
+                Number depth = (Number) eqTDVPar.getAttribute("Depth");
 //                logger.log(Level.INFO, "Params to elaborate: " + useShakeMap + 
 //                        shakeMapName + longitude + latitude + 
 //                        magnitude + depth);
@@ -288,6 +288,8 @@ public class TDVModel implements GeoServerProcess {
         } catch (Exception e) {
             logger.log(Level.SEVERE, "TDV Exception: {0}", e);
             logger.log(Level.SEVERE, "StackTrace: {0}", Arrays.toString(e.getStackTrace()));
+            this.icmmHelperFacade.updateTransition("Exception: " + e, transition, PROCESS_PHASES,
+                PROCESS_PHASES, Transition.Status.ERROR);
         } finally {
             if (resultSet != null) {
                 resultSet.close();

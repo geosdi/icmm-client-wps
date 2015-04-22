@@ -5,13 +5,6 @@
  */
 package org.geosdi.wps.utility;
 
-import eu.crismaproject.icmm.icmmhelper.ICMMClient;
-import eu.crismaproject.icmm.icmmhelper.ICMMHelper;
-import eu.crismaproject.icmm.icmmhelper.entity.DataItem;
-import eu.crismaproject.icmm.icmmhelper.entity.Transition;
-import eu.crismaproject.icmm.icmmhelper.pilotD.Categories;
-import eu.crismaproject.icmm.icmmhelper.pilotD.Indicators;
-import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
