@@ -100,9 +100,9 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Fetch origin worldstate (WS) from ICMM
                 //I'm asking for the existent WS having id 1 
                 //waiting for the world state generation
-                Worldstate worldstate = this.icmmHelperFacade.getClient().getWorldstate(targetWorldSateID, 3, true);
+                final Worldstate originWs = this.icmmHelperFacade.getClient().getWorldstate(targetWorldSateID, 3, true);
                 //*WF* Extract origin schema from WS
-                String originSchema = PilotDHelper.getSchema(worldstate);
+                String originSchema = PilotDHelper.getSchema(originWs);
                 logger.log(Level.INFO, "Origin Schema: " + originSchema);
                 logger.log(Level.INFO, "After world state fetching");
 
@@ -276,13 +276,16 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Write indicator dataitems to ICMM
                 DataItem indicatorsDataItem = this.icmmHelperFacade.writeIndicatorsDataItem(indicators);
 
-                worldstate = PilotDHelper.getWorldstate(worldstate, resultItems,
+                final Worldstate targetWs = PilotDHelper.getWorldstate(originWs, resultItems,
                         indicatorsDataItem, transition, worldStateName, worldStateName);
-                this.icmmHelperFacade.getClient().insertSelfRefAndId(worldstate);
-                logger.finest("WORLD STATE: " + worldstate);
+                this.icmmHelperFacade.getClient().insertSelfRefAndId(targetWs);
+                logger.finest("WORLD STATE: " + targetWs);
                 //*WF* Write new World State to ICMM
-                this.icmmHelperFacade.getClient().putWorldstate(worldstate);
-
+                this.icmmHelperFacade.getClient().putWorldstate(targetWs);
+                final Worldstate targetWsRef = new Worldstate(targetWs.get$self());
+                originWs.getChildworldstates().add(targetWsRef);
+                this.icmmHelperFacade.getClient().putWorldstate(originWs);
+                
                 i++;
             }
         } catch (Exception e) {
