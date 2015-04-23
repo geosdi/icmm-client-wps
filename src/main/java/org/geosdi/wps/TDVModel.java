@@ -95,11 +95,10 @@ public class TDVModel implements GeoServerProcess {
             int targetWorldSateID = wsId;
 
             int i = 1;
+            int operation = 1;
             SimpleFeatureIterator iterator = eqTDVParList.features();
             while (iterator.hasNext()) {
                 //*WF* Fetch origin worldstate (WS) from ICMM
-                //I'm asking for the existent WS having id 1 
-                //waiting for the world state generation
                 final Worldstate originWs = this.icmmHelperFacade.getClient().getWorldstate(targetWorldSateID, 3, true);
                 //*WF* Extract origin schema from WS
                 String originSchema = PilotDHelper.getSchema(originWs);
@@ -109,7 +108,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Update CCIM transition object: Preparing workspace for round #
                 //&& Write transition object to ICMM
                 this.icmmHelperFacade.updateTransition("Preparing workspace",
-                        transition, i + 1, PROCESS_PHASES, Transition.Status.RUNNING);
+                        transition, operation + 1, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 SimpleFeature eqTDVPar = iterator.next();
                 final List<DataItem> resultItems = Lists.<DataItem>newArrayList();
@@ -131,7 +130,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Update CCIM transition object: Running build damage model round round #
                 //&& Write transition object to ICMM
                 this.icmmHelperFacade.updateTransition("Running build damage model round: " + i,
-                        transition, i + 2, PROCESS_PHASES, Transition.Status.RUNNING);
+                        transition, operation + 2, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 // execute building damage
                 DataStoreInfo crismaDatastore = this.geoServerUtils.getDataStore(crismaWorkspace, worldStateName);
@@ -212,7 +211,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Update CCIM transition object: Running building inventory update round #
                 //&& Write transition object to ICMM
                 this.icmmHelperFacade.updateTransition("Running building inventory update for round: " + i,
-                        transition, i + 3, PROCESS_PHASES, Transition.Status.RUNNING);
+                        transition, operation + 3, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //Waiting for Stefano procedure
                 //TODO: Add the code that updates the building inventory
@@ -226,7 +225,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Update CCIM transition object: Running people impact for round #
                 //&& Write transition object to ICMM
                 this.icmmHelperFacade.updateTransition("Running people impact for round: " + i,
-                        transition, i + 4, PROCESS_PHASES, Transition.Status.RUNNING);
+                        transition, operation + 4, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //*WF* Execute people impact procedure
                 stringBuilder = new StringBuilder("select aquila.v2_casualties('");
@@ -268,7 +267,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Update CCIM transition object: Calculating indicators for round #
                 //&& Write transition object to ICMM
                 this.icmmHelperFacade.updateTransition("Calculating indicators for round: " + i,
-                        transition, i + 5, PROCESS_PHASES, Transition.Status.RUNNING);
+                        transition, operation + 5, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //TODO: Waiting for procedures to complete the code that calculates the indicators
                 Indicators indicators = IndicatorCalculator.calculateIndicators(worldStateName, connection);
@@ -282,8 +281,9 @@ public class TDVModel implements GeoServerProcess {
                 logger.finest("WORLD STATE: " + targetWs);
                 //*WF* Write new World State to ICMM
                 this.icmmHelperFacade.persistWorldState(targetWs, originWs);
-                
+
                 i++;
+                operation += 5;
             }
         } catch (Exception e) {
             logger.log(Level.SEVERE, "TDV Exception: {0}", e);
