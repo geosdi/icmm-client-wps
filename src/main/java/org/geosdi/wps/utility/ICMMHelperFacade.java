@@ -9,6 +9,7 @@ import eu.crismaproject.icmm.icmmhelper.ICMMClient;
 import eu.crismaproject.icmm.icmmhelper.ICMMHelper;
 import eu.crismaproject.icmm.icmmhelper.entity.DataItem;
 import eu.crismaproject.icmm.icmmhelper.entity.Transition;
+import eu.crismaproject.icmm.icmmhelper.entity.Worldstate;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Categories;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Indicators;
 import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
@@ -96,6 +97,14 @@ public class ICMMHelperFacade {
 
     public ICMMClient getClient() {
         return client;
+    }
+
+    public void persistWorldState(Worldstate targetWs, Worldstate originWs) {
+        this.client.putWorldstate(targetWs);
+        final Worldstate targetWsRef = new Worldstate(targetWs.get$self());
+        originWs.getChildworldstates().add(targetWsRef);
+        this.client.putWorldstate(originWs);
+        this.debug();
     }
 
 }

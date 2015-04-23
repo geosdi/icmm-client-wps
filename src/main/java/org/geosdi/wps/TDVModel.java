@@ -281,10 +281,7 @@ public class TDVModel implements GeoServerProcess {
                 this.icmmHelperFacade.getClient().insertSelfRefAndId(targetWs);
                 logger.finest("WORLD STATE: " + targetWs);
                 //*WF* Write new World State to ICMM
-                this.icmmHelperFacade.getClient().putWorldstate(targetWs);
-                final Worldstate targetWsRef = new Worldstate(targetWs.get$self());
-                originWs.getChildworldstates().add(targetWsRef);
-                this.icmmHelperFacade.getClient().putWorldstate(originWs);
+                this.icmmHelperFacade.persistWorldState(targetWs, originWs);
                 
                 i++;
             }
