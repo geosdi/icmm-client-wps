@@ -99,6 +99,7 @@ public class TDVModel implements GeoServerProcess {
             SimpleFeatureIterator iterator = eqTDVParList.features();
             while (iterator.hasNext()) {
                 //*WF* Fetch origin worldstate (WS) from ICMM
+                logger.log(Level.INFO, "Getting world state with id: " + targetWorldSateID);
                 final Worldstate originWs = this.icmmHelperFacade.getClient().getWorldstate(targetWorldSateID, 3, true);
                 //*WF* Extract origin schema from WS
                 String originSchema = PilotDHelper.getSchema(originWs);
@@ -213,11 +214,17 @@ public class TDVModel implements GeoServerProcess {
                 this.icmmHelperFacade.updateTransition("Running building inventory update for round: " + i,
                         transition, operation + 3, PROCESS_PHASES, Transition.Status.RUNNING);
 
-                //Waiting for Stefano procedure
-                //TODO: Add the code that updates the building inventory
-                //TODO: Publish building inventory on WMS
+                //*WF* Update the building inventory
+                stringBuilder = new StringBuilder("select aquila.v2_ooi_update('");
+                stringBuilder.append(worldStateName).append("')");
+                resultSet = statement.executeQuery(stringBuilder.toString());
+
+                //*WF* Publish building inventory on WMS
+                FeatureTypeInfo ooiUpdateFeatures = this.geoServerUtils.getOrPublishFeatureType(
+                        crismaWorkspace, crismaDatastore, namespace, "building_inventory",
+                        "polygon");
                 //*WF* Write building inventory dataitems to ICMM
-                String buildingInventoryName = "";
+                String buildingInventoryName = ooiUpdateFeatures.getName();
                 DataItem buildingInventoryItem = this.icmmHelperFacade.writeWMSDataItem(
                         buildingInventoryName, "Building Inventory", Categories.BUILDING_INVENTORY);
                 resultItems.add(buildingInventoryItem);
