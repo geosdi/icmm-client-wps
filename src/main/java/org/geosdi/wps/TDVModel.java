@@ -114,7 +114,6 @@ public class TDVModel implements GeoServerProcess {
 
                 SimpleFeature eqTDVPar = iterator.next();
                 final List<DataItem> resultItems = Lists.<DataItem>newArrayList();
-//                String worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldStateID);
                 //Executing World State copy
                 resultSet = statement.executeQuery("select aquila.ccr_ws_mk('" + originICMMSchema + "', 2)");
                 logger.log(Level.FINEST, "Creating World State copy, result metadata column count: "
@@ -218,6 +217,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Update the building inventory
                 stringBuilder = new StringBuilder("select aquila.v2_ooi_update('");
                 stringBuilder.append(worldStateSchemaOnDB).append("')");
+                logger.log(Level.INFO, "Building Inventory Query Executed: " + stringBuilder.toString());
                 resultSet = statement.executeQuery(stringBuilder.toString());
 
                 //*WF* Publish building inventory on WMS
@@ -294,6 +294,11 @@ public class TDVModel implements GeoServerProcess {
                 i++;
                 operation += 5;
             }
+            //*WF* Update CCIM transition object: Status finished
+            //&& Write transition object to ICMM
+            this.icmmHelperFacade.updateTransition("Process Executed", transition, PROCESS_PHASES,
+                    PROCESS_PHASES, Transition.Status.FINISHED);
+            return "Process Executed correctly";
         } catch (Exception e) {
             logger.log(Level.SEVERE, "TDV Exception: {0}", e);
             logger.log(Level.SEVERE, "StackTrace: {0}", Arrays.toString(e.getStackTrace()));
@@ -310,11 +315,6 @@ public class TDVModel implements GeoServerProcess {
                 connection.close();
             }
         }
-
-        //*WF* Update CCIM transition object: Status finished
-        //&& Write transition object to ICMM
-        this.icmmHelperFacade.updateTransition("Process Executed", transition, PROCESS_PHASES,
-                PROCESS_PHASES, Transition.Status.FINISHED);
-        return "Process Executed correctly";
+        return "Errors occured executing the process see logs for dettails";
     }
 }
