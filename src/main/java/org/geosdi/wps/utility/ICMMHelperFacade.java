@@ -5,6 +5,7 @@
  */
 package org.geosdi.wps.utility;
 
+import com.google.common.collect.Lists;
 import eu.crismaproject.icmm.icmmhelper.ICMMClient;
 import eu.crismaproject.icmm.icmmhelper.ICMMHelper;
 import eu.crismaproject.icmm.icmmhelper.entity.DataItem;
@@ -13,6 +14,7 @@ import eu.crismaproject.icmm.icmmhelper.entity.Worldstate;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Categories;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Indicators;
 import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
+import java.io.StringWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -100,10 +102,27 @@ public class ICMMHelperFacade {
     }
 
     public void persistWorldState(Worldstate targetWs, Worldstate originWs) {
+//        ObjectMapper mapper = new ObjectMapper();
+//        mapper.setSerializationInclusion(Include.ALWAYS);
+//        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+//        try {
         this.client.putWorldstate(targetWs);
+
+//            logger.log(Level.INFO, "###### After put Worldstate targetWs: "
+//                    + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(targetWs));
         final Worldstate targetWsRef = new Worldstate(targetWs.get$self());
+//            logger.log(Level.INFO, "###### After targetWsRef creation: "
+//                    + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(targetWsRef));
+        if (originWs.getChildworldstates() == null) {
+            originWs.setChildworldstates(Lists.<Worldstate>newArrayList());
+        }
         originWs.getChildworldstates().add(targetWsRef);
+//            logger.log(Level.INFO, "###### After originWs.getChildworldstates().add(targetWsRef): "
+//                    + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(originWs));
         this.client.putWorldstate(originWs);
+//        } catch (IOException ex) {
+//            Logger.getLogger(ICMMHelperFacade.class.getName()).log(Level.SEVERE, null, ex);
+//        }
         this.debug();
     }
 

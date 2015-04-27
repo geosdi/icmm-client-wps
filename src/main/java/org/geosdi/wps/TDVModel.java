@@ -92,18 +92,19 @@ public class TDVModel implements GeoServerProcess {
         try {
             connection = this.geoServerUtils.connectToDatabaseOrDie();
             statement = connection.createStatement();
-            int targetWorldStateID = wsId;
+            int targetICMMWorldStateID = wsId;
+            int targetDBWorldStateID = -1;
 
             int i = 1;
             int operation = 1;
             SimpleFeatureIterator iterator = eqTDVParList.features();
             while (iterator.hasNext()) {
                 //*WF* Fetch origin worldstate (WS) from ICMM
-                logger.log(Level.INFO, "Getting world state with id: " + targetWorldStateID);
-                final Worldstate originWs = this.icmmHelperFacade.getClient().getWorldstate(targetWorldStateID, 3, true);
+                logger.log(Level.INFO, "Getting ICMM world state with id: " + targetICMMWorldStateID);
+                final Worldstate originWs = this.icmmHelperFacade.getClient().getWorldstate(targetICMMWorldStateID, 3, true);
                 //*WF* Extract origin schema from WS
-                String originSchema = PilotDHelper.getSchema(originWs);
-                logger.log(Level.INFO, "Origin Schema: " + originSchema);
+                String originICMMSchema = PilotDHelper.getSchema(originWs);
+                logger.log(Level.INFO, "DB Origin Schema: " + originICMMSchema);
                 logger.log(Level.INFO, "After world state fetching");
 
                 //*WF* Update CCIM transition object: Preparing workspace for round #
@@ -113,19 +114,19 @@ public class TDVModel implements GeoServerProcess {
 
                 SimpleFeature eqTDVPar = iterator.next();
                 final List<DataItem> resultItems = Lists.<DataItem>newArrayList();
-                String worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldStateID);
+//                String worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldStateID);
                 //Executing World State copy
-                resultSet = statement.executeQuery("select aquila.ccr_ws_mk('" + worldStateName + "', 2)");
+                resultSet = statement.executeQuery("select aquila.ccr_ws_mk('" + originICMMSchema + "', 2)");
                 logger.log(Level.FINEST, "Creating World State copy, result metadata column count: "
                         + resultSet.getMetaData().getColumnCount());
                 while (resultSet.next()) {
-                    targetWorldStateID = resultSet.getInt(1);
+                    targetDBWorldStateID = resultSet.getInt(1);
                 }
-                worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldStateID);
-                logger.log(Level.INFO, "Result for world state copy operation: " + targetWorldStateID);
+                String worldStateSchemaOnDB = this.icmmHelperFacade.generateWorldStateName(targetDBWorldStateID);
+                logger.log(Level.INFO, "Result for world state copy operation: " + targetDBWorldStateID);
 //                Thread.sleep(30000);
                 //*WF* Write target schema dataItem to ICMM
-                DataItem schemaItem = this.icmmHelperFacade.writeTargetSchemaDataItem(worldStateName);
+                DataItem schemaItem = this.icmmHelperFacade.writeTargetSchemaDataItem(worldStateSchemaOnDB);
                 resultItems.add(schemaItem);
 
                 //*WF* Update CCIM transition object: Running build damage model round round #
@@ -134,7 +135,7 @@ public class TDVModel implements GeoServerProcess {
                         transition, operation + 2, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 // execute building damage
-                DataStoreInfo crismaDatastore = this.geoServerUtils.getDataStore(crismaWorkspace, worldStateName);
+                DataStoreInfo crismaDatastore = this.geoServerUtils.getDataStore(crismaWorkspace, worldStateSchemaOnDB);
 
                 /*
                  aquila.v2_building_damage(sch_name text, nstep integer, shakemap boolean, 
@@ -152,7 +153,7 @@ public class TDVModel implements GeoServerProcess {
 
                 StringBuilder stringBuilder = new StringBuilder("select aquila.v2_building_damage('");
                 stringBuilder.
-                        append(worldStateName).
+                        append(worldStateSchemaOnDB).
                         append("',").
                         append(i).
                         append(",").
@@ -216,7 +217,7 @@ public class TDVModel implements GeoServerProcess {
 
                 //*WF* Update the building inventory
                 stringBuilder = new StringBuilder("select aquila.v2_ooi_update('");
-                stringBuilder.append(worldStateName).append("')");
+                stringBuilder.append(worldStateSchemaOnDB).append("')");
                 resultSet = statement.executeQuery(stringBuilder.toString());
 
                 //*WF* Publish building inventory on WMS
@@ -237,7 +238,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Execute people impact procedure
                 stringBuilder = new StringBuilder("select aquila.v2_casualties('");
                 stringBuilder.
-                        append(worldStateName).
+                        append(worldStateSchemaOnDB).
                         append("',").
                         append(i).
                         append(")");
@@ -277,18 +278,18 @@ public class TDVModel implements GeoServerProcess {
                         transition, operation + 5, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //TODO: Waiting for procedures to complete the code that calculates the indicators
-                Indicators indicators = IndicatorCalculator.calculateIndicators(worldStateName, connection);
+                Indicators indicators = IndicatorCalculator.calculateIndicators(worldStateSchemaOnDB, connection);
                 logger.log(Level.INFO, "Calculated indicators: {0}", indicators);
                 //*WF* Write indicator dataitems to ICMM
                 DataItem indicatorsDataItem = this.icmmHelperFacade.writeIndicatorsDataItem(indicators);
 
                 final Worldstate targetWs = PilotDHelper.getWorldstate(originWs, resultItems,
-                        indicatorsDataItem, transition, worldStateName, worldStateName);
+                        indicatorsDataItem, transition, worldStateSchemaOnDB, worldStateSchemaOnDB);
                 this.icmmHelperFacade.getClient().insertSelfRefAndId(targetWs);
                 logger.finest("WORLD STATE: " + targetWs);
                 //*WF* Write new World State to ICMM
                 this.icmmHelperFacade.persistWorldState(targetWs, originWs);
-                targetWorldStateID = targetWs.getId();
+                targetICMMWorldStateID = targetWs.getId();
 
                 i++;
                 operation += 5;
