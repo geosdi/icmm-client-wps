@@ -92,15 +92,15 @@ public class TDVModel implements GeoServerProcess {
         try {
             connection = this.geoServerUtils.connectToDatabaseOrDie();
             statement = connection.createStatement();
-            int targetWorldSateID = wsId;
+            int targetWorldStateID = wsId;
 
             int i = 1;
             int operation = 1;
             SimpleFeatureIterator iterator = eqTDVParList.features();
             while (iterator.hasNext()) {
                 //*WF* Fetch origin worldstate (WS) from ICMM
-                logger.log(Level.INFO, "Getting world state with id: " + targetWorldSateID);
-                final Worldstate originWs = this.icmmHelperFacade.getClient().getWorldstate(targetWorldSateID, 3, true);
+                logger.log(Level.INFO, "Getting world state with id: " + targetWorldStateID);
+                final Worldstate originWs = this.icmmHelperFacade.getClient().getWorldstate(targetWorldStateID, 3, true);
                 //*WF* Extract origin schema from WS
                 String originSchema = PilotDHelper.getSchema(originWs);
                 logger.log(Level.INFO, "Origin Schema: " + originSchema);
@@ -113,16 +113,16 @@ public class TDVModel implements GeoServerProcess {
 
                 SimpleFeature eqTDVPar = iterator.next();
                 final List<DataItem> resultItems = Lists.<DataItem>newArrayList();
-                String worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldSateID);
+                String worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldStateID);
                 //Executing World State copy
                 resultSet = statement.executeQuery("select aquila.ccr_ws_mk('" + worldStateName + "', 2)");
                 logger.log(Level.FINEST, "Creating World State copy, result metadata column count: "
                         + resultSet.getMetaData().getColumnCount());
                 while (resultSet.next()) {
-                    targetWorldSateID = resultSet.getInt(1);
+                    targetWorldStateID = resultSet.getInt(1);
                 }
-                worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldSateID);
-                logger.log(Level.INFO, "Result for world state copy operation: " + targetWorldSateID);
+                worldStateName = this.icmmHelperFacade.generateWorldStateName(targetWorldStateID);
+                logger.log(Level.INFO, "Result for world state copy operation: " + targetWorldStateID);
 //                Thread.sleep(30000);
                 //*WF* Write target schema dataItem to ICMM
                 DataItem schemaItem = this.icmmHelperFacade.writeTargetSchemaDataItem(worldStateName);
@@ -288,6 +288,7 @@ public class TDVModel implements GeoServerProcess {
                 logger.finest("WORLD STATE: " + targetWs);
                 //*WF* Write new World State to ICMM
                 this.icmmHelperFacade.persistWorldState(targetWs, originWs);
+                targetWorldStateID = targetWs.getId();
 
                 i++;
                 operation += 5;
