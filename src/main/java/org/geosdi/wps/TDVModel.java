@@ -22,6 +22,7 @@ import jersey.repackaged.com.google.common.collect.Lists;
 import org.geosdi.wps.utility.IndicatorCalculator;
 import org.geosdi.wps.utility.GeoServerUtils;
 import org.geosdi.wps.utility.ICMMHelperFacade;
+import org.geosdi.wps.utility.ShakeMapNameEnum;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.NamespaceInfo;
@@ -150,6 +151,12 @@ public class TDVModel implements GeoServerProcess {
 //                        shakeMapName + longitude + latitude + 
 //                        magnitude + depth);
 
+                String shakeMapEnumValue = null;
+                if (shakeMapName != null) {
+                    //This throws IllegalArgumentException iff the shakeMapName 
+                    //does not correspont to any accepted enum
+                    shakeMapEnumValue = ShakeMapNameEnum.valueOf(shakeMapName).getName();
+                }
                 StringBuilder stringBuilder = new StringBuilder("select aquila.v2_building_damage('");
                 stringBuilder.
                         append(worldStateSchemaOnDB).
@@ -158,7 +165,7 @@ public class TDVModel implements GeoServerProcess {
                         append(",").
                         append(useShakeMap).
                         append(",").
-                        append(shakeMapName == null ? "''" : "'" + shakeMapName + "'").
+                        append(shakeMapEnumValue == null ? "''" : "'" + shakeMapEnumValue + "'").
                         append(",").
                         append(latitude).
                         append(",").
@@ -270,7 +277,14 @@ public class TDVModel implements GeoServerProcess {
                 peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
                         peopleImpactMaxName, "PEOPLE IMPACT MAX", Categories.PEOPLE_IMPACT_MAX);
                 resultItems.add(peopleImpactDataItem);
-//
+                //
+                FeatureTypeInfo peopleDistributionFeatures = this.geoServerUtils.
+                        getOrPublishFeatureType(crismaWorkspace, crismaDatastore,
+                                namespace, "comp_cell", "people_distrib");
+                String peopleDistributionName = peopleDistributionFeatures.getName();
+                peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
+                        peopleDistributionName, "PEOPLE DISTRIBUTION", Categories.PEOPLE_DISTRIBUTION);
+                resultItems.add(peopleImpactDataItem);
 
                 //*WF* Update CCIM transition object: Calculating indicators for round #
                 //&& Write transition object to ICMM

@@ -18,7 +18,7 @@
       "type": "Feature",
       "properties": {
         "useShakemap": true,
-        "ShakeMapName": "grid_xyz_20090406",
+        "ShakeMapName": "shakemap_1",
         "Latitude": 42.303,
         "Longitude": 13.486,
         "Magnitude": 4.5,
@@ -36,7 +36,7 @@
       "type": "Feature",
       "properties": {
         "useShakemap": false,
-        "ShakeMapName": "grid_xyz_20090612",
+        "ShakeMapName": "shakemap_2",
         "Latitude": 42.303,
         "Longitude": 13.486,
         "Magnitude": 4.5,
