@@ -137,7 +137,7 @@ public class GeoServerUtils {
             DataStoreInfo crismaDatastore, NamespaceInfo namespace,
             String featureName, String styleName) throws Exception {
 
-        String newFeatureName = featureName + UUID.randomUUID().toString();
+        String newFeatureName = featureName + "_" + crismaDatastore.getName();
 
         FeatureTypeInfo featureTypeInfo = this.catalog.getFeatureTypeByDataStore(
                 crismaDatastore, newFeatureName);
@@ -244,6 +244,7 @@ public class GeoServerUtils {
                 logger.log(Level.INFO, "Resource Info result: " + layerInfo.getResource());
 
                 layerInfo.setName(newFeatureName);
+                layerInfo.setTitle(newFeatureName);
                 //create a layer for the feature type
                 if (styleName != null) {
                     StyleInfo s = catalog.getStyleByName(styleName);

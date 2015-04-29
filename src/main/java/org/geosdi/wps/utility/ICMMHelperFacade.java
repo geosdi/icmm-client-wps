@@ -14,7 +14,6 @@ import eu.crismaproject.icmm.icmmhelper.entity.Worldstate;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Categories;
 import eu.crismaproject.icmm.icmmhelper.pilotD.Indicators;
 import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
-import java.io.StringWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
