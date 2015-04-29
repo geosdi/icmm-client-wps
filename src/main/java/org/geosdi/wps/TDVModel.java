@@ -319,7 +319,7 @@ public class TDVModel implements GeoServerProcess {
             //&& Write transition object to ICMM
             transition.setDescription("WPS TDV Elaboration, started on "
                     + formatter.format(startDate)
-                    + ", stopped on " + formatter.format(new Date()));
+                    + ", ended on " + formatter.format(new Date()));
             this.icmmHelperFacade.updateTransition("Process Executed",
                     transition, PROCESS_PHASES,
                     PROCESS_PHASES, Transition.Status.FINISHED);
@@ -327,6 +327,9 @@ public class TDVModel implements GeoServerProcess {
         } catch (Exception e) {
             logger.log(Level.SEVERE, "TDV Exception: {0}", e);
             logger.log(Level.SEVERE, "StackTrace: {0}", Arrays.toString(e.getStackTrace()));
+            transition.setDescription("WPS TDV Elaboration, started on "
+                    + formatter.format(startDate)
+                    + ", failed on " + formatter.format(new Date()));
             this.icmmHelperFacade.updateTransition("Exception: " + e, transition, PROCESS_PHASES,
                     PROCESS_PHASES, Transition.Status.ERROR);
         } finally {
