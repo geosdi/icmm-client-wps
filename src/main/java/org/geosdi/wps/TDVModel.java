@@ -194,7 +194,7 @@ public class TDVModel implements GeoServerProcess {
 
                 featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
-                        "building_damage_varmin", "polygon");
+                        "building_damage_varmin", "building_damage_lost");
                 //
                 dataItem = this.icmmHelperFacade.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage Var Min", Categories.BUILDING_DAMAGE_MIN);
@@ -202,7 +202,7 @@ public class TDVModel implements GeoServerProcess {
 
                 featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
-                        "building_damage", "polygon");
+                        "building_damage", "building_damage_lost");
                 //
                 dataItem = this.icmmHelperFacade.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage AVG", Categories.BUILDING_DAMAGE_AVG);
@@ -210,7 +210,7 @@ public class TDVModel implements GeoServerProcess {
 
                 featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
-                        "building_damage_varmax", "polygon");
+                        "building_damage_varmax", "building_damage_lost");
                 //
                 dataItem = this.icmmHelperFacade.writeWMSDataItem(
                         featureTypeInfo.getName(), "Building Damage Var Max", Categories.BUILDING_DAMAGE_MAX);
@@ -230,7 +230,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Publish building inventory on WMS
                 FeatureTypeInfo ooiUpdateFeatures = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace, "building_inventory",
-                        "polygon");
+                        "buildings_inventory_eqvclasses");
                 //*WF* Write building inventory dataitems to ICMM
                 String buildingInventoryName = ooiUpdateFeatures.getName();
                 DataItem buildingInventoryItem = this.icmmHelperFacade.writeWMSDataItem(
@@ -255,7 +255,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Write people impact (min/max/avg) dataitems to ICMM
                 FeatureTypeInfo casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace, "casualties",
-                        "polygon");
+                        "casualties_deads");
 
                 String peopleImpactAVGName = casualitiesFeatures.getName();
                 DataItem peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
@@ -264,7 +264,7 @@ public class TDVModel implements GeoServerProcess {
 
                 casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
-                        "casualties_varmin", "polygon");
+                        "casualties_varmin", "casualties_deads");
                 String peopleImpactMinName = casualitiesFeatures.getName();;
                 peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
                         peopleImpactMinName, "PEOPLE IMPACT MIN", Categories.PEOPLE_IMPACT_MIN);
@@ -272,7 +272,7 @@ public class TDVModel implements GeoServerProcess {
 
                 casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace,
-                        "casualties_varmax", "polygon");
+                        "casualties_varmax", "casualties_deads");
                 String peopleImpactMaxName = casualitiesFeatures.getName();
                 peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
                         peopleImpactMaxName, "PEOPLE IMPACT MAX", Categories.PEOPLE_IMPACT_MAX);
