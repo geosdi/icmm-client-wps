@@ -14,7 +14,10 @@ import eu.crismaproject.icmm.icmmhelper.pilotD.PilotDHelper;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.text.Format;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -76,10 +79,14 @@ public class TDVModel implements GeoServerProcess {
 
         this.PROCESS_PHASES += noOfEvents * 5;
 
+        Format formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        Date startDate = new Date();
+
         //*WF* Generating transition object && write transition object to ICMM
         Transition transition = this.icmmHelperFacade.initProcessTransition(
                 "Time Dependent Vulnerability Elaboration",
-                "WPS TDV Elaboration", this.PROCESS_PHASES);
+                "WPS TDV Elaboration, started on " + formatter.format(startDate),
+                this.PROCESS_PHASES);
 
         //Init basic elements to publish layers
         WorkspaceInfo crismaWorkspace = this.geoServerUtils.getWorkspace();
@@ -197,7 +204,7 @@ public class TDVModel implements GeoServerProcess {
                         "building_damage_varmin", "building_damage_lost");
                 //
                 dataItem = this.icmmHelperFacade.writeWMSDataItem(
-                        featureTypeInfo.getName(), "Building Damage Var Min", Categories.BUILDING_DAMAGE_MIN);
+                        featureTypeInfo.getName(), "Lost Buildings (Min)", Categories.BUILDING_DAMAGE_MIN);
                 resultItems.add(dataItem);
 
                 featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
@@ -205,7 +212,7 @@ public class TDVModel implements GeoServerProcess {
                         "building_damage", "building_damage_lost");
                 //
                 dataItem = this.icmmHelperFacade.writeWMSDataItem(
-                        featureTypeInfo.getName(), "Building Damage AVG", Categories.BUILDING_DAMAGE_AVG);
+                        featureTypeInfo.getName(), "Lost Buildings (Avg)", Categories.BUILDING_DAMAGE_AVG);
                 resultItems.add(dataItem);
 
                 featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
@@ -213,7 +220,7 @@ public class TDVModel implements GeoServerProcess {
                         "building_damage_varmax", "building_damage_lost");
                 //
                 dataItem = this.icmmHelperFacade.writeWMSDataItem(
-                        featureTypeInfo.getName(), "Building Damage Var Max", Categories.BUILDING_DAMAGE_MAX);
+                        featureTypeInfo.getName(), "Lost Buildings (Max)", Categories.BUILDING_DAMAGE_MAX);
                 resultItems.add(dataItem);
 //Example WMS link: http://192.168.1.30:8080/geoserver/wms?request=GetMap&service=WMS&version=1.1.1&layers=crisma:intens_grid&format=image%2Fpng&bbox=345220.145083,4670346.1361,391220.145083,4716846.1361&width=506&height=512&srs=EPSG:32633
                 //*WF* Update CCIM transition object: Running building inventory update round #
@@ -259,7 +266,7 @@ public class TDVModel implements GeoServerProcess {
 
                 String peopleImpactAVGName = casualitiesFeatures.getName();
                 DataItem peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
-                        peopleImpactAVGName, "PEOPLE IMPACT AVG", Categories.PEOPLE_IMPACT_AVG);
+                        peopleImpactAVGName, "Deads (Avg)", Categories.PEOPLE_IMPACT_AVG);
                 resultItems.add(peopleImpactDataItem);
 
                 casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
@@ -267,7 +274,7 @@ public class TDVModel implements GeoServerProcess {
                         "casualties_varmin", "casualties_deads");
                 String peopleImpactMinName = casualitiesFeatures.getName();;
                 peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
-                        peopleImpactMinName, "PEOPLE IMPACT MIN", Categories.PEOPLE_IMPACT_MIN);
+                        peopleImpactMinName, "Deads (Min)", Categories.PEOPLE_IMPACT_MIN);
                 resultItems.add(peopleImpactDataItem);
 
                 casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
@@ -275,7 +282,7 @@ public class TDVModel implements GeoServerProcess {
                         "casualties_varmax", "casualties_deads");
                 String peopleImpactMaxName = casualitiesFeatures.getName();
                 peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
-                        peopleImpactMaxName, "PEOPLE IMPACT MAX", Categories.PEOPLE_IMPACT_MAX);
+                        peopleImpactMaxName, "Deads (Max)", Categories.PEOPLE_IMPACT_MAX);
                 resultItems.add(peopleImpactDataItem);
                 //
                 FeatureTypeInfo peopleDistributionFeatures = this.geoServerUtils.
@@ -283,7 +290,7 @@ public class TDVModel implements GeoServerProcess {
                                 namespace, "comp_cell", "people_distrib");
                 String peopleDistributionName = peopleDistributionFeatures.getName();
                 peopleImpactDataItem = this.icmmHelperFacade.writeWMSDataItem(
-                        peopleDistributionName, "PEOPLE DISTRIBUTION", Categories.PEOPLE_DISTRIBUTION);
+                        peopleDistributionName, "People Distribution", Categories.PEOPLE_DISTRIBUTION);
                 resultItems.add(peopleImpactDataItem);
 
                 //*WF* Update CCIM transition object: Calculating indicators for round #
@@ -310,7 +317,11 @@ public class TDVModel implements GeoServerProcess {
             }
             //*WF* Update CCIM transition object: Status finished
             //&& Write transition object to ICMM
-            this.icmmHelperFacade.updateTransition("Process Executed", transition, PROCESS_PHASES,
+            transition.setDescription("WPS TDV Elaboration, started on "
+                    + formatter.format(startDate)
+                    + ", stopped on " + formatter.format(new Date()));
+            this.icmmHelperFacade.updateTransition("Process Executed",
+                    transition, PROCESS_PHASES,
                     PROCESS_PHASES, Transition.Status.FINISHED);
             return "Process Executed correctly";
         } catch (Exception e) {
