@@ -191,7 +191,7 @@ public class TDVModel implements GeoServerProcess {
                 //*WF* Publishing intensity grid, building damage (min/max/avg) on WMS
                 FeatureTypeInfo featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace, "intens_grid",
-                        "crisma:intens_grid");
+                        "intens_grid");
 
                 //*WF* Write intensity grid, building damage (min/max/avg) dataitems to ICMM
                 String intensGridName = featureTypeInfo.getName();
