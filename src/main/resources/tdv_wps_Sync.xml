@@ -5,7 +5,7 @@
         <wps:Input>
             <ows:Identifier>noOfEvents</ows:Identifier>
             <wps:Data>
-                <wps:LiteralData>2</wps:LiteralData>
+                <wps:LiteralData>3</wps:LiteralData>
             </wps:Data>
         </wps:Input>
         <wps:Input>
@@ -35,8 +35,26 @@
     {
       "type": "Feature",
       "properties": {
-        "useShakemap": false,
+        "useShakemap": true,
         "ShakeMapName": "shakemap_2",
+        "Latitude": 42.303,
+        "Longitude": 13.486,
+        "Magnitude": 4.5,
+        "Depth": 10.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          42.303,
+          13.486
+        ]
+        }
+    },
+      {
+      "type": "Feature",
+      "properties": {
+        "useShakemap": true,
+        "ShakeMapName": "shakemap_3",
         "Latitude": 42.303,
         "Longitude": 13.486,
         "Magnitude": 4.5,

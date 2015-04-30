@@ -25,7 +25,6 @@ import jersey.repackaged.com.google.common.collect.Lists;
 import org.geosdi.wps.utility.IndicatorCalculator;
 import org.geosdi.wps.utility.GeoServerUtils;
 import org.geosdi.wps.utility.ICMMHelperFacade;
-import org.geosdi.wps.utility.ShakeMapNameEnum;
 import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.NamespaceInfo;
@@ -34,16 +33,14 @@ import org.geotools.process.factory.DescribeParameter;
 import org.geotools.process.factory.DescribeProcess;
 import org.geotools.process.factory.DescribeResult;
 import org.geoserver.wps.gs.GeoServerProcess;
-import org.geotools.data.simple.SimpleFeatureCollection;
-import org.geotools.data.simple.SimpleFeatureIterator;
-import org.opengis.feature.simple.SimpleFeature;
 
 /**
  * @author Nazzareno Sileno - CNR IMAA geoSDI Group
  * @email nazzareno.sileno@geosdi.org
  */
-@DescribeProcess(title = "TDV Model", description = "CRISMA WPS for Time Dependent Vulnerability elaboration")
-public class TDVModel implements GeoServerProcess {
+@DescribeProcess(title = "World State Publication",
+        description = "CRISMA WPS for publishing world states")
+public class WorldStatePublication implements GeoServerProcess {
 
     /*
      * Example link to execute the WPS:
@@ -58,7 +55,7 @@ public class TDVModel implements GeoServerProcess {
     private GeoServerUtils geoServerUtils;
     private ICMMHelperFacade icmmHelperFacade;
 
-    public TDVModel(GeoServerUtils geoServerUtils, ICMMHelperFacade icmmHelperFacade) {
+    public WorldStatePublication(GeoServerUtils geoServerUtils, ICMMHelperFacade icmmHelperFacade) {
         this.geoServerUtils = geoServerUtils;
         this.icmmHelperFacade = icmmHelperFacade;
     }
@@ -66,27 +63,21 @@ public class TDVModel implements GeoServerProcess {
     @DescribeResult(name = "result", description = "String that indicates the "
             + "result state of the execution")
     public String execute(
-            @DescribeParameter(name = "noOfEvents", description = "The number of events "
-                    + "that shall be simulated by the TDV model, not evaluated "
-                    + "if apply TDV is false. Defaults to '1' (one). "
-                    + "If noOfEvents > 1 then a set of () parameters must be "
-                    + "included in the parameters list.") int noOfEvents,
-            @DescribeParameter(name = "eqTDVParList", description = "A SimpleFeatureCollection"
-                    + "having number of features equals to the param noOfEvents "
-                    + "value. Each feature contains TDV parameters that specify the "
-                    + "characteristics of the earthquakes elements list.") SimpleFeatureCollection eqTDVParList,
-            @DescribeParameter(name = "wsID", description = "WS ID") Integer wsId)
+            @DescribeParameter(name = "worldStateList", description = "ID of the world states to publish", collectionType = Integer.class) List<Integer> worldStateList)
             throws Exception {
 
-        this.PROCESS_PHASES += noOfEvents * 5;
+        if (worldStateList == null || worldStateList.isEmpty()) {
+            throw new IllegalArgumentException("The passed world state id list is empty");
+        }
+        this.PROCESS_PHASES += worldStateList.size() * 5;
 
         Format formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         Date startDate = new Date();
 
         //*WF* Generating transition object && write transition object to ICMM
         Transition transition = this.icmmHelperFacade.initProcessTransition(
-                "Time Dependent Vulnerability Elaboration",
-                "WPS TDV Elaboration, started on " + formatter.format(startDate),
+                "World State Publication",
+                "WPS World State Publication, started on " + formatter.format(startDate),
                 this.PROCESS_PHASES);
 
         //Init basic elements to publish layers
@@ -101,37 +92,32 @@ public class TDVModel implements GeoServerProcess {
         try {
             connection = this.geoServerUtils.connectToDatabaseOrDie();
             statement = connection.createStatement();
-            int targetICMMWorldStateID = wsId;
-            int targetDBWorldStateID = -1;
+
+            //*WF* Fetch origin worldstate (WS) from ICMM
+            logger.log(Level.INFO, "Getting ICMM world state with id: " + 0);
+            final Worldstate originWs = this.icmmHelperFacade.getClient().
+                    getWorldstate(1, 3, true);
+            //*WF* Extract origin schema from WS
+//            String originICMMSchema = PilotDHelper.getSchema(originWs);
+//            logger.log(Level.INFO, "DB Origin Schema: " + originICMMSchema);
+//            logger.log(Level.INFO, "After world state fetching");
 
             int i = 1;
             int operation = 1;
-            SimpleFeatureIterator iterator = eqTDVParList.features();
-            while (iterator.hasNext()) {
-                //*WF* Fetch origin worldstate (WS) from ICMM
-                logger.log(Level.INFO, "Getting ICMM world state with id: " + targetICMMWorldStateID);
-                final Worldstate originWs = this.icmmHelperFacade.getClient().getWorldstate(targetICMMWorldStateID, 3, true);
-                //*WF* Extract origin schema from WS
-                String originICMMSchema = PilotDHelper.getSchema(originWs);
-                logger.log(Level.INFO, "DB Origin Schema: " + originICMMSchema);
-                logger.log(Level.INFO, "After world state fetching");
+            for (Integer targetDBWorldStateID : worldStateList) {
+                logger.log(Level.FINEST, "Target World State to publish: "
+                        + targetDBWorldStateID);
 
                 //*WF* Update CCIM transition object: Preparing workspace for round #
                 //&& Write transition object to ICMM
                 this.icmmHelperFacade.updateTransition("Preparing workspace",
                         transition, operation + 1, PROCESS_PHASES, Transition.Status.RUNNING);
 
-                SimpleFeature eqTDVPar = iterator.next();
+//                SimpleFeature eqTDVPar = iterator.next();
                 final List<DataItem> resultItems = Lists.<DataItem>newArrayList();
-                //Executing World State copy
-                resultSet = statement.executeQuery("select aquila.ccr_ws_mk('" + originICMMSchema + "', 2)");
-                logger.log(Level.FINEST, "Creating World State copy, result metadata column count: "
-                        + resultSet.getMetaData().getColumnCount());
-                while (resultSet.next()) {
-                    targetDBWorldStateID = resultSet.getInt(1);
-                }
+
                 String worldStateSchemaOnDB = this.icmmHelperFacade.generateWorldStateName(targetDBWorldStateID);
-                logger.log(Level.INFO, "Result for world state copy operation: " + targetDBWorldStateID);
+                logger.log(Level.INFO, "Result for world state name creation: " + targetDBWorldStateID);
 //                Thread.sleep(30000);
                 //*WF* Write target schema dataItem to ICMM
                 DataItem schemaItem = this.icmmHelperFacade.writeTargetSchemaDataItem(worldStateSchemaOnDB);
@@ -139,56 +125,12 @@ public class TDVModel implements GeoServerProcess {
 
                 //*WF* Update CCIM transition object: Running build damage model round round #
                 //&& Write transition object to ICMM
-                this.icmmHelperFacade.updateTransition("Running build damage model round: " + i,
+                this.icmmHelperFacade.updateTransition("Publishing build damage model round: " + i,
                         transition, operation + 2, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 // execute building damage
                 DataStoreInfo crismaDatastore = this.geoServerUtils.getDataStore(crismaWorkspace, worldStateSchemaOnDB);
 
-                /*
-                 aquila.v2_building_damage(sch_name text, nstep integer, shakemap boolean, 
-                 map_name text, lat real, lon real, depth real, magnitudo real)
-                 */
-                boolean useShakeMap = (Boolean) eqTDVPar.getAttribute("useShakemap");
-                String shakeMapName = (String) eqTDVPar.getAttribute("ShakeMapName");
-                Number latitude = (Number) eqTDVPar.getAttribute("Latitude");
-                Number longitude = (Number) eqTDVPar.getAttribute("Longitude");
-                Number magnitude = (Number) eqTDVPar.getAttribute("Magnitude");
-                Number depth = (Number) eqTDVPar.getAttribute("Depth");
-//                logger.log(Level.INFO, "Params to elaborate: " + useShakeMap + 
-//                        shakeMapName + longitude + latitude + 
-//                        magnitude + depth);
-
-                String shakeMapEnumValue = null;
-                if (shakeMapName != null) {
-                    //This throws IllegalArgumentException iff the shakeMapName 
-                    //does not correspont to any accepted enum
-                    shakeMapEnumValue = ShakeMapNameEnum.valueOf(shakeMapName).getName();
-                }
-                StringBuilder stringBuilder = new StringBuilder("select aquila.v2_building_damage('");
-                stringBuilder.
-                        append(worldStateSchemaOnDB).
-                        append("',").
-                        append(i).
-                        append(",").
-                        append(useShakeMap).
-                        append(",").
-                        append(shakeMapEnumValue == null ? "''" : "'" + shakeMapEnumValue + "'").
-                        append(",").
-                        append(latitude).
-                        append(",").
-                        append(longitude).
-                        append(",").
-                        append(depth).
-                        append(",").
-                        append(magnitude).
-                        append(")");
-                resultSet = statement.executeQuery(stringBuilder.toString());
-                logger.log(Level.INFO, "Query Executed: " + stringBuilder.toString());
-                while (resultSet.next()) {
-                    //Catching column 1 value
-                    logger.log(Level.INFO, resultSet.getString(1));
-                }
                 //*WF* Publishing intensity grid, building damage (min/max/avg) on WMS
                 FeatureTypeInfo featureTypeInfo = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace, "intens_grid",
@@ -226,15 +168,14 @@ public class TDVModel implements GeoServerProcess {
 //Example WMS link: http://192.168.1.30:8080/geoserver/wms?request=GetMap&service=WMS&version=1.1.1&layers=crisma:intens_grid&format=image%2Fpng&bbox=345220.145083,4670346.1361,391220.145083,4716846.1361&width=506&height=512&srs=EPSG:32633
                 //*WF* Update CCIM transition object: Running building inventory update round #
                 //&& Write transition object to ICMM
-                this.icmmHelperFacade.updateTransition("Running building inventory update for round: " + i,
+                this.icmmHelperFacade.updateTransition("Publishing building inventory update for round: " + i,
                         transition, operation + 3, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //*WF* Update the building inventory
-                stringBuilder = new StringBuilder("select aquila.v2_ooi_update('");
-                stringBuilder.append(worldStateSchemaOnDB).append("')");
-                logger.log(Level.INFO, "Building Inventory Query Executed: " + stringBuilder.toString());
-                resultSet = statement.executeQuery(stringBuilder.toString());
-
+//                stringBuilder = new StringBuilder("select aquila.v2_ooi_update('");
+//                stringBuilder.append(worldStateSchemaOnDB).append("')");
+//                logger.log(Level.INFO, "Building Inventory Query Executed: " + stringBuilder.toString());
+//                resultSet = statement.executeQuery(stringBuilder.toString());
                 //*WF* Publish building inventory on WMS
                 FeatureTypeInfo ooiUpdateFeatures = this.geoServerUtils.getOrPublishFeatureType(
                         crismaWorkspace, crismaDatastore, namespace, "building_inventory",
@@ -247,18 +188,17 @@ public class TDVModel implements GeoServerProcess {
 
                 //*WF* Update CCIM transition object: Running people impact for round #
                 //&& Write transition object to ICMM
-                this.icmmHelperFacade.updateTransition("Running people impact for round: " + i,
+                this.icmmHelperFacade.updateTransition("Publishing people impact for round: " + i,
                         transition, operation + 4, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //*WF* Execute people impact procedure
-                stringBuilder = new StringBuilder("select aquila.v2_casualties('");
-                stringBuilder.
-                        append(worldStateSchemaOnDB).
-                        append("',").
-                        append(i).
-                        append(")");
-                resultSet = statement.executeQuery(stringBuilder.toString());
-
+//                stringBuilder = new StringBuilder("select aquila.v2_casualties('");
+//                stringBuilder.
+//                        append(worldStateSchemaOnDB).
+//                        append("',").
+//                        append(i).
+//                        append(")");
+//                resultSet = statement.executeQuery(stringBuilder.toString());
                 //*WF* Publish people impact (min/max/avg) on WMS
                 //*WF* Write people impact (min/max/avg) dataitems to ICMM
                 FeatureTypeInfo casualitiesFeatures = this.geoServerUtils.getOrPublishFeatureType(
@@ -296,31 +236,29 @@ public class TDVModel implements GeoServerProcess {
 
                 //*WF* Update CCIM transition object: Calculating indicators for round #
                 //&& Write transition object to ICMM
-                this.icmmHelperFacade.updateTransition("Calculating indicators for round: " + i,
+                this.icmmHelperFacade.updateTransition("Publishing indicators for round: " + i,
                         transition, operation + 5, PROCESS_PHASES, Transition.Status.RUNNING);
 
                 //TODO: Waiting for procedures to complete the code that calculates the indicators
                 Indicators indicators = IndicatorCalculator.calculateIndicators(
-                        worldStateSchemaOnDB, connection, true);
+                        worldStateSchemaOnDB, connection, false);
                 logger.log(Level.INFO, "Calculated indicators: {0}", indicators);
                 //*WF* Write indicator dataitems to ICMM
                 DataItem indicatorsDataItem = this.icmmHelperFacade.writeIndicatorsDataItem(indicators);
 
                 final Worldstate targetWs = PilotDHelper.getWorldstate(originWs, resultItems,
-                        indicatorsDataItem, transition, "WS " + targetDBWorldStateID, 
+                        indicatorsDataItem, transition, "WS " + targetDBWorldStateID,
                         "This is the world state representation");
                 this.icmmHelperFacade.getClient().insertSelfRefAndId(targetWs);
                 logger.finest("WORLD STATE: " + targetWs);
                 //*WF* Write new World State to ICMM
                 this.icmmHelperFacade.persistWorldState(targetWs, originWs);
-                targetICMMWorldStateID = targetWs.getId();
 
-                i++;
                 operation += 5;
             }
             //*WF* Update CCIM transition object: Status finished
             //&& Write transition object to ICMM
-            transition.setDescription("WPS TDV Elaboration, started on "
+            transition.setDescription("World State Publication, started on "
                     + formatter.format(startDate)
                     + ", ended on " + formatter.format(new Date()));
             this.icmmHelperFacade.updateTransition("Process Executed",
@@ -328,9 +266,9 @@ public class TDVModel implements GeoServerProcess {
                     PROCESS_PHASES, Transition.Status.FINISHED);
             return "Process Executed correctly";
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "TDV Exception: {0}", e);
+            logger.log(Level.SEVERE, "World State Publication Exception: {0}", e);
             logger.log(Level.SEVERE, "StackTrace: {0}", Arrays.toString(e.getStackTrace()));
-            transition.setDescription("WPS TDV Elaboration, started on "
+            transition.setDescription("WPS World State Publication, started on "
                     + formatter.format(startDate)
                     + ", failed on " + formatter.format(new Date()));
             this.icmmHelperFacade.updateTransition("Exception: " + e, transition, PROCESS_PHASES,

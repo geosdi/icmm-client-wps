@@ -44,4 +44,14 @@
         <constructor-arg index="0" ref="geoServerUtils"/>
         <constructor-arg index="1" ref="icmmHelperFacade"/>
     </bean>
+
+    <bean id="worldStatePublicationSeq" class="org.geosdi.wps.WorldStatePublicationSeq">
+        <constructor-arg index="0" ref="geoServerUtils"/>
+        <constructor-arg index="1" ref="icmmHelperFacade"/>
+    </bean>
+
+    <bean id="worldStatePublication" class="org.geosdi.wps.WorldStatePublication">
+        <constructor-arg index="0" ref="geoServerUtils"/>
+        <constructor-arg index="1" ref="icmmHelperFacade"/>
+    </bean>
 </beans>
